@@ -320,9 +320,7 @@ export default function StatsPage() {
           >
             Son 12 ay · gün gün
           </div>
-          <div className="overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
-            <Heatmap cells={heat.cells} max={heat.max} weeks={heat.weeks} />
-          </div>
+          <Heatmap cells={heat.cells} max={heat.max} weeks={heat.weeks} />
           <div className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase text-muted">
             <span>Az</span>
             <span className="w-2.5 h-2.5 bg-hair rounded-[1px]" />
@@ -878,9 +876,6 @@ function Heatmap({
   max: number;
   weeks: number;
 }) {
-  // Convert flat cells (Monday-first, 7 rows × N cols) to col-major rendering
-  const cellSize = 11;
-  const gap = 2;
   const intensity = (count: number) => {
     if (count === 0) return "bg-hair";
     if (max <= 1) return "bg-ink";
@@ -892,36 +887,66 @@ function Heatmap({
   };
 
   return (
-    <div className="inline-block">
-      <div
-        className="grid grid-rows-7"
-        style={{
-          gridAutoFlow: "column",
-          gridTemplateColumns: `repeat(${weeks}, ${cellSize}px)`,
-          gap: `${gap}px`,
-        }}
-      >
-        {cells.map((c, i) => (
+    <div
+      className="w-full grid grid-rows-7 gap-[3px]"
+      style={{
+        gridAutoFlow: "column",
+        gridTemplateColumns: `repeat(${weeks}, minmax(0, 1fr))`,
+      }}
+    >
+      {cells.map((c, i) => {
+        const weekIdx = Math.floor(i / 7);
+        // Anchor tooltip away from the page edges so it doesn't cause
+        // horizontal scroll on the first/last weeks of the grid.
+        const anchor =
+          weekIdx < 6
+            ? "left-0"
+            : weekIdx > weeks - 7
+              ? "right-0"
+              : "left-1/2 -translate-x-1/2";
+        return (
           <div
             key={i}
-            className={
-              "rounded-[1px] " +
-              intensity(c.count) +
-              (c.inRange ? "" : " opacity-30")
-            }
-            style={{ width: cellSize, height: cellSize }}
-            title={
-              c.count
-                ? `${c.date.toLocaleDateString("tr-TR", { day: "numeric", month: "short", year: "numeric" })} — ${c.count} yayın`
-                : c.date.toLocaleDateString("tr-TR", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-            }
-          />
-        ))}
-      </div>
+            className="relative group/heat aspect-square"
+            tabIndex={c.inRange ? 0 : -1}
+          >
+            <div
+              className={
+                "absolute inset-0 rounded-[1px] " +
+                intensity(c.count) +
+                (c.inRange ? "" : " opacity-30")
+              }
+            />
+            <div
+              role="tooltip"
+              className={
+                "absolute z-50 bottom-[calc(100%+4px)] " +
+                anchor +
+                " min-w-[150px] px-2 py-1.5 rounded-[2px] " +
+                "bg-ink text-bg text-[11px] font-mono uppercase whitespace-nowrap " +
+                "shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.5)] " +
+                "opacity-0 pointer-events-none translate-y-1 " +
+                "group-hover/heat:opacity-100 group-hover/heat:translate-y-0 " +
+                "group-focus-within/heat:opacity-100 group-focus-within/heat:translate-y-0 " +
+                "transition-[opacity,transform] duration-100 delay-75"
+              }
+              style={{ letterSpacing: "0.04em" }}
+            >
+              <span className="text-bg">
+                {c.date.toLocaleDateString("tr-TR", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+              <span className="text-faint mx-1.5">/</span>
+              <span className="text-bg">
+                {c.count > 0 ? `${c.count} yayın` : "yayın yok"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
