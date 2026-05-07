@@ -44,10 +44,11 @@ COPY --from=builder --chown=app:app /app/lib ./lib
 COPY --from=builder --chown=app:app /app/tsconfig.json ./tsconfig.json
 COPY --from=builder --chown=app:app /app/package.json ./package.json
 
+# Seed data — checked into the repo. The scheduled `npm run sync` task
+# overwrites these files in place at runtime.
+COPY --from=builder --chown=app:app /app/data ./data
+
 USER app
 EXPOSE 3000
-
-# data/ is a writable volume — sync writes here, Next reads here.
-VOLUME ["/app/data"]
 
 CMD ["node", "server.js"]
