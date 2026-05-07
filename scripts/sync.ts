@@ -184,8 +184,13 @@ async function ytDlpStream(
   });
 }
 
-// Match a manual event to a YouTube stream by date proximity (±36h) and
-// shared significant words in the title.
+// Match a manual event to a YouTube stream that started within ±1 hour.
+// At that range we don't require title similarity — Selçuk almost never
+// runs two streams an hour apart, so proximity is enough. If multiple
+// candidates fall in the window we still prefer the one with the most
+// shared title words.
+const MATCH_WINDOW_MS = 1 * 3600 * 1000;
+
 function findMatchingStream(
   manualTitle: string,
   manualISO: string,
@@ -194,10 +199,12 @@ function findMatchingStream(
   const manualMs = new Date(manualISO).getTime();
   const candidates = streams.filter((s) => {
     const sMs = new Date(s.actualStartAt ?? s.scheduledAt).getTime();
-    return Math.abs(sMs - manualMs) <= 36 * 3600 * 1000;
+    return Math.abs(sMs - manualMs) <= MATCH_WINDOW_MS;
   });
   if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
 
+  // Multiple in window — pick best by shared title tokens, tiebreak by time.
   const tokenize = (t: string) =>
     t
       .toLocaleLowerCase("tr-TR")
@@ -205,30 +212,20 @@ function findMatchingStream(
       .split(/\s+/)
       .filter((w) => w.length >= 3);
   const manualTokens = new Set(tokenize(manualTitle));
-  if (manualTokens.size === 0) {
-    // Fallback: nearest by time only
-    return candidates.sort(
-      (a, b) =>
-        Math.abs(new Date(a.scheduledAt).getTime() - manualMs) -
-        Math.abs(new Date(b.scheduledAt).getTime() - manualMs),
-    )[0];
-  }
 
   let best: { s: Stream; score: number } | null = null;
   for (const s of candidates) {
     const sTokens = new Set(tokenize(s.title));
     let shared = 0;
     for (const w of manualTokens) if (sTokens.has(w)) shared++;
-    if (shared === 0) continue;
-    // Time penalty: closer = better
     const dt = Math.abs(
       new Date(s.actualStartAt ?? s.scheduledAt).getTime() - manualMs,
     );
-    const score = shared * 100 - dt / 3600000; // -1 per hour difference
+    // Each shared token worth 1 hour of proximity
+    const score = shared * 3600000 - dt;
     if (!best || score > best.score) best = { s, score };
   }
-  // Require at least one shared token to be confident
-  return best ? best.s : null;
+  return best?.s ?? null;
 }
 
 function entryToShort(e: YtDlpEntry): Short | null {
