@@ -40,8 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# runtime data — synced by yt-dlp, populated on the server
-/data/
+# runtime data — populated by yt-dlp.
+# We track public seed files (streams/shorts/channel) but never the
+# admin-created manual events.
+/data/manual.json
 
 # claude code workspace
 CLAUDE.md
