@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg: #faf9f6;
+  --color-surface: #ffffff;
+  --color-text: #1a1815;
+  --color-muted: #6b6660;
+  --color-faint: #a8a39c;
+  --color-hair: #e8e4dd;
+  --color-ink: #0d0c0a;
+  --color-red: #dc2626;
+  --color-event-past: #f0ede5;
+
+  /* All headings use the same Inter family — `font-serif` keeps working as
+     an alias so existing classes don't need touching. Letter-spacing is
+     pulled tighter on display sizes via per-element class overrides. */
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, system-ui, sans-serif;
+  --font-serif: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo,
+    monospace;
+
+  --radius-DEFAULT: 2px;
+  --radius-sm: 1px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+}
+
+/* Dark theme — same hierarchy, warm dark instead of warm light. */
+.dark {
+  --color-bg: #0d0c0a;
+  --color-surface: #16140f;
+  --color-text: #ece7df;
+  --color-muted: #8b857c;
+  --color-faint: #565148;
+  --color-hair: #2a2620;
+  --color-ink: #faf9f6;
+  --color-red: #ef4444;
+  --color-event-past: #1f1c16;
+}
+
+html {
+  background: var(--color-bg);
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern", "liga", "calt", "ss01", "cv11";
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display sizes (hero countdown, page titles) get tighter tracking and
+   slightly heavier weight so they read as proper headings without serif. */
+.font-serif {
+  letter-spacing: -0.02em;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.live-dot {
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
