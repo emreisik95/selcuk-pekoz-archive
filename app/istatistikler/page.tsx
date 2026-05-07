@@ -65,7 +65,8 @@ export default function StatsPage() {
   const dow = dayOfWeekDistribution(past);
   const hours = hourDistribution(past);
   const months = monthlyTrend(past, 12, now);
-  const heat = buildYearHeatmap(past, now);
+  const heat = buildYearHeatmap(past, now, 53);
+  const heatMobile = buildYearHeatmap(past, now, 26);
   const tops = topLists(past);
   const years = yearTotals(past);
   const streaks = streakStats(past);
@@ -318,9 +319,19 @@ export default function StatsPage() {
             className="font-mono text-[10px] md:text-[11px] uppercase text-muted mb-3"
             style={{ letterSpacing: "0.12em" }}
           >
-            Son 12 ay · gün gün
+            <span className="md:hidden">Son 6 ay · gün gün</span>
+            <span className="hidden md:inline">Son 12 ay · gün gün</span>
           </div>
-          <Heatmap cells={heat.cells} max={heat.max} weeks={heat.weeks} />
+          <div className="md:hidden">
+            <Heatmap
+              cells={heatMobile.cells}
+              max={heatMobile.max}
+              weeks={heatMobile.weeks}
+            />
+          </div>
+          <div className="hidden md:block">
+            <Heatmap cells={heat.cells} max={heat.max} weeks={heat.weeks} />
+          </div>
           <div className="mt-3 flex items-center gap-2 font-mono text-[10px] uppercase text-muted">
             <span>Az</span>
             <span className="w-2.5 h-2.5 bg-hair rounded-[1px]" />

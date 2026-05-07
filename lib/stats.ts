@@ -214,10 +214,10 @@ export type HeatmapCell = {
 export function buildYearHeatmap(
   streams: Stream[],
   endDate: Date,
+  totalWeeks = 53,
 ): { cells: HeatmapCell[]; weeks: number; max: number } {
-  // Anchor end on a Sunday (last day of grid week)
   const endTrt = trt(endDate);
-  const endDow = (endTrt.getUTCDay() + 6) % 7; // Pzt=0..Paz=6
+  const endDow = (endTrt.getUTCDay() + 6) % 7;
   const lastSunday = new Date(
     Date.UTC(
       endTrt.getUTCFullYear(),
@@ -225,13 +225,11 @@ export function buildYearHeatmap(
       endTrt.getUTCDate() + (6 - endDow),
     ),
   );
-  // 53 weeks back from lastSunday to firstMonday
-  const totalDays = 53 * 7;
+  const totalDays = totalWeeks * 7;
   const firstMonday = new Date(
     lastSunday.getTime() - (totalDays - 1) * 86400000,
   );
 
-  // Bucket streams by ISO date (TRT calendar day)
   const counts = new Map<string, number>();
   for (const s of streams) {
     const d = trt(new Date(s.scheduledAt));
@@ -241,7 +239,7 @@ export function buildYearHeatmap(
 
   const cells: HeatmapCell[] = [];
   const inRangeStart = trt(
-    new Date(endDate.getTime() - 365 * 86400000),
+    new Date(endDate.getTime() - (totalDays - 7) * 86400000),
   ).getTime();
   const inRangeEnd = endTrt.getTime();
   let max = 0;
@@ -256,7 +254,7 @@ export function buildYearHeatmap(
       count,
     });
   }
-  return { cells, weeks: 53, max };
+  return { cells, weeks: totalWeeks, max };
 }
 
 // Σ(viewers × duration_hours). A rough "audience-time delivered" measure.
