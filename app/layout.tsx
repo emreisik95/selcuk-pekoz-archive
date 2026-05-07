@@ -63,6 +63,11 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          defer
+          data-domain="sp.emre.zip"
+          src="https://analytics.pixelgoblin.link/js/script.js"
+        />
       </head>
       <body className="min-h-dvh flex flex-col">{children}</body>
     </html>
