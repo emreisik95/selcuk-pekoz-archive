@@ -354,15 +354,35 @@ export function hourRange(
   return { earliest, latest };
 }
 
-// % of streams that started at 21:00 or later (gece kuşu).
+// % of total broadcast minutes that fall inside the 21:00–04:00 TRT window.
+// Uses actual stream duration so a 20:00 start that runs 5 hours counts as
+// mostly night, not "started before 21 → not gece kuşu".
 export function nightOwlPercent(streams: Stream[]): number {
-  if (streams.length === 0) return 0;
-  let night = 0;
+  let totalMin = 0;
+  let nightMin = 0;
   for (const s of streams) {
-    const h = trt(new Date(s.scheduledAt)).getUTCHours();
-    if (h >= 21 || h < 4) night++;
+    const dur = s.durationSec ?? 0;
+    if (dur <= 0) continue;
+    const start = new Date(s.actualStartAt ?? s.scheduledAt);
+    const minutes = nightOverlapMinutes(start, dur);
+    nightMin += minutes;
+    totalMin += dur / 60;
   }
-  return Math.round((night / streams.length) * 100);
+  return totalMin > 0 ? Math.round((nightMin / totalMin) * 100) : 0;
+}
+
+// How many minutes of [start, start+durationSec) fall in 21:00–04:00 (TRT).
+function nightOverlapMinutes(start: Date, durationSec: number): number {
+  const totalMin = Math.round(durationSec / 60);
+  let count = 0;
+  // Step through minute by minute. Stream durations are bounded (≤24h), so
+  // at most 1,440 iterations per stream — trivial.
+  for (let m = 0; m < totalMin; m++) {
+    const t = new Date(start.getTime() + m * 60000);
+    const hour = trt(t).getUTCHours();
+    if (hour >= 21 || hour < 4) count++;
+  }
+  return count;
 }
 
 // Find first stream whose title matches a tag pattern.

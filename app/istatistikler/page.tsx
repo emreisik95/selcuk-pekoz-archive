@@ -180,9 +180,13 @@ export default function StatsPage() {
             {ten.days > 0 && (
               <FunFact
                 icon="calendar"
-                label="Yayın tenure"
+                label="Kaç senedir yayında"
                 value={ten.readable}
-                detail={`${ten.days.toLocaleString("tr-TR")} gün${firstStream ? ` — ${fmtShortDate(new Date(firstStream.scheduledAt))} tarihinden bugüne` : ""}`}
+                detail={
+                  firstStream
+                    ? `İlk yayın ${fmtShortDate(new Date(firstStream.scheduledAt))} — bugüne ${ten.days.toLocaleString("tr-TR")} gün`
+                    : `${ten.days.toLocaleString("tr-TR")} gündür yayında`
+                }
               />
             )}
             {thisYear.count > 0 && (
@@ -238,7 +242,7 @@ export default function StatsPage() {
                 icon="moon"
                 label="Gece kuşu oranı"
                 value={`% ${nightPct}`}
-                detail="Yayınların 21:00–04:00 arasındaki oranı"
+                detail="Toplam yayın süresinin 21:00–04:00 arasında geçen kısmı"
               />
             )}
             {wkSplit.weekday + wkSplit.weekend > 0 && (
@@ -559,7 +563,7 @@ export default function StatsPage() {
               />
               <Method
                 term="Gece kuşu oranı"
-                desc="Saat 21:00–04:00 arasında başlayan yayınların oranı (TRT)."
+                desc="Toplam yayın dakikasının 21:00–04:00 arasında geçen oranı. 20:00'de başlayıp 5 saat süren yayın doğru şekilde çoğunlukla gece sayılır."
               />
               <Method
                 term="Hafta içi/sonu"
