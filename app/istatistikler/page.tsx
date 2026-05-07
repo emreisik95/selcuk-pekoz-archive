@@ -117,16 +117,27 @@ export default function StatsPage() {
           >
             Selçuk&apos;un yayın özeti
           </h1>
-          <div className="mt-6 md:mt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-5">
-            <Stat label="Toplam yayın" value={t.count.toLocaleString("tr-TR")} />
-            <Stat
-              label="Toplam süre"
-              value={`${t.totalHours.toLocaleString("tr-TR")} saat`}
+          {/* Primary triple — biggest numbers */}
+          <div className="mt-6 md:mt-10 grid grid-cols-1 md:grid-cols-3 gap-y-6 md:gap-x-10 md:gap-y-0 md:divide-x md:divide-hair">
+            <BigStat
+              label="Toplam yayın"
+              value={t.count.toLocaleString("tr-TR")}
+              suffix=""
             />
-            <Stat
+            <BigStat
+              label="Toplam süre"
+              value={t.totalHours.toLocaleString("tr-TR")}
+              suffix="saat"
+            />
+            <BigStat
               label="Toplam izlenme"
               value={fmtViews(t.totalViews) || "—"}
+              suffix=""
             />
+          </div>
+
+          {/* Secondary trio — supporting context */}
+          <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-hair grid grid-cols-3 gap-x-4 md:gap-x-10">
             <Stat
               label="Ortalama süre"
               value={t.avgSec ? fmtDuration(t.avgSec) : "—"}
@@ -155,17 +166,28 @@ export default function StatsPage() {
             />
           </div>
 
-          {/* Fun facts grid — primary insights */}
-          <div className="mt-7 md:mt-9 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        </section>
+
+        {/* Fun facts grid */}
+        <section className="px-5 md:px-10 pt-7 md:pt-10 pb-7">
+          <div
+            className="font-mono text-[10px] md:text-[11px] uppercase text-muted mb-4"
+            style={{ letterSpacing: "0.12em" }}
+          >
+            Eğlenceli bilgiler
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {ten.days > 0 && (
               <FunFact
+                icon="calendar"
                 label="Yayın tenure"
                 value={ten.readable}
-                detail={`${ten.days.toLocaleString("tr-TR")} gün — ${firstStream ? fmtShortDate(new Date(firstStream.scheduledAt)) : ""} tarihinden bugüne`}
+                detail={`${ten.days.toLocaleString("tr-TR")} gün${firstStream ? ` — ${fmtShortDate(new Date(firstStream.scheduledAt))} tarihinden bugüne` : ""}`}
               />
             )}
             {thisYear.count > 0 && (
               <FunFact
+                icon="trend"
                 label={`${thisYear.year} yılında`}
                 value={`${thisYear.count} yayın`}
                 detail="Bu yıl şu ana kadar"
@@ -173,6 +195,7 @@ export default function StatsPage() {
             )}
             {activeDays > 0 && (
               <FunFact
+                icon="check"
                 label="Aktif gün sayısı"
                 value={`${activeDays.toLocaleString("tr-TR")} gün`}
                 detail="Yayın açtığı farklı takvim günü"
@@ -180,6 +203,7 @@ export default function StatsPage() {
             )}
             {mostActive.count > 1 && mostActive.date && (
               <FunFact
+                icon="target"
                 label="En aktif tek gün"
                 value={`${mostActive.count} yayın`}
                 detail={fmtShortDate(mostActive.date)}
@@ -187,13 +211,15 @@ export default function StatsPage() {
             )}
             {vh > 0 && (
               <FunFact
+                icon="people"
                 label="İzleyici-saat"
                 value={fmtBigNumber(vh)}
-                detail="Σ(izlenme × süre_saat) — toplam izleyici-saat"
+                detail="Σ(izlenme × süre_saat)"
               />
             )}
             {avgV > 0 && (
               <FunFact
+                icon="eye"
                 label="Yayın başına ortalama izlenme"
                 value={fmtBigNumber(avgV)}
                 detail={`Tamamlanmış ${past.length} yayın için`}
@@ -201,13 +227,15 @@ export default function StatsPage() {
             )}
             {hRange.earliest !== undefined && hRange.latest !== undefined && (
               <FunFact
+                icon="clock"
                 label="Yayın saati aralığı"
-                value={`${String(hRange.earliest).padStart(2, "0")}:00 – ${String(hRange.latest).padStart(2, "0")}:00`}
-                detail="En erken ve en geç başlangıç saati (TRT)"
+                value={`${String(hRange.earliest).padStart(2, "0")}:00–${String(hRange.latest).padStart(2, "0")}:00`}
+                detail="En erken ve en geç başlangıç (TRT)"
               />
             )}
             {nightPct > 0 && (
               <FunFact
+                icon="moon"
                 label="Gece kuşu oranı"
                 value={`% ${nightPct}`}
                 detail="Yayınların 21:00–04:00 arasındaki oranı"
@@ -215,6 +243,7 @@ export default function StatsPage() {
             )}
             {wkSplit.weekday + wkSplit.weekend > 0 && (
               <FunFact
+                icon="split"
                 label="Hafta içi vs. hafta sonu"
                 value={`% ${wkSplit.weekdayPct} – % ${100 - wkSplit.weekdayPct}`}
                 detail={`Pzt–Cum: ${wkSplit.weekday} · Cmt–Paz: ${wkSplit.weekend}`}
@@ -222,6 +251,7 @@ export default function StatsPage() {
             )}
             {topTag && firstOfTopTag && (
               <FunFact
+                icon="star"
                 label="Favori konu"
                 value={`${topTag.tag} (${topTag.count})`}
                 detail={`İlki: ${fmtShortDate(new Date(firstOfTopTag.scheduledAt))}`}
@@ -229,6 +259,7 @@ export default function StatsPage() {
             )}
             {streaks.longestStreak.days > 0 && (
               <FunFact
+                icon="flame"
                 label="En uzun streak"
                 value={`${streaks.longestStreak.days} gün üst üste`}
                 detail={
@@ -240,6 +271,7 @@ export default function StatsPage() {
             )}
             {streaks.longestGap.days > 1 && (
               <FunFact
+                icon="pause"
                 label="En uzun ara"
                 value={`${streaks.longestGap.days} gün`}
                 detail={
@@ -251,23 +283,26 @@ export default function StatsPage() {
             )}
             {flights > 0 && (
               <FunFact
+                icon="plane"
                 label="Uçuş kıyası"
                 value={`~${flights} uçuş`}
-                detail="İstanbul–Tokyo (≈11 saat) sefer eşdeğeri"
+                detail="İstanbul–Tokyo (≈11s) sefer eşdeğeri"
               />
             )}
             {awake > 0 && (
               <FunFact
+                icon="zzz"
                 label="Uyku metaforu"
                 value={`${awake} gün`}
-                detail="Tüm yayını izleyen biri uyumadan geçirir (16s/gün)"
+                detail="Tüm yayını izleyen biri uyumadan geçirir"
               />
             )}
             {stream100 && (
               <FunFact
+                icon="medal"
                 label="100. yayın"
                 value={fmtShortDate(new Date(stream100.scheduledAt))}
-                detail={stream100.title.slice(0, 50) + (stream100.title.length > 50 ? "…" : "")}
+                detail={stream100.title.slice(0, 60) + (stream100.title.length > 60 ? "…" : "")}
               />
             )}
           </div>
@@ -596,37 +631,217 @@ function Method({ term, desc }: { term: string; desc: string }) {
   );
 }
 
+type IconKey =
+  | "calendar"
+  | "trend"
+  | "check"
+  | "target"
+  | "people"
+  | "eye"
+  | "clock"
+  | "moon"
+  | "split"
+  | "star"
+  | "flame"
+  | "pause"
+  | "plane"
+  | "zzz"
+  | "medal";
+
+function StatIcon({ name }: { name: IconKey }) {
+  const common = {
+    width: 16,
+    height: 16,
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.6,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  switch (name) {
+    case "calendar":
+      return (
+        <svg {...common}>
+          <rect x="2.5" y="3.5" width="11" height="10" rx="1" />
+          <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
+        </svg>
+      );
+    case "trend":
+      return (
+        <svg {...common}>
+          <path d="M2 12 6 8l3 3 5-7" />
+          <path d="M10 4h4v4" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="8" r="6" />
+          <path d="m5.5 8 2 2 3-4" />
+        </svg>
+      );
+    case "target":
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="8" r="6" />
+          <circle cx="8" cy="8" r="3" />
+          <circle cx="8" cy="8" r="0.5" fill="currentColor" />
+        </svg>
+      );
+    case "people":
+      return (
+        <svg {...common}>
+          <circle cx="6" cy="6" r="2" />
+          <path d="M2 13c0-2.2 1.8-4 4-4s4 1.8 4 4" />
+          <circle cx="11" cy="5" r="1.6" />
+          <path d="M10 9.3a3.5 3.5 0 0 1 4 3.7" />
+        </svg>
+      );
+    case "eye":
+      return (
+        <svg {...common}>
+          <path d="M1.5 8s2.5-4 6.5-4 6.5 4 6.5 4-2.5 4-6.5 4-6.5-4-6.5-4Z" />
+          <circle cx="8" cy="8" r="1.8" />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="8" r="6" />
+          <path d="M8 4.5V8l2.5 1.5" />
+        </svg>
+      );
+    case "moon":
+      return (
+        <svg {...common}>
+          <path d="M13 9.5A5.5 5.5 0 0 1 6.5 3 6 6 0 1 0 13 9.5Z" />
+        </svg>
+      );
+    case "split":
+      return (
+        <svg {...common}>
+          <path d="M3 13V7M8 13V3M13 13v-3" />
+        </svg>
+      );
+    case "star":
+      return (
+        <svg {...common}>
+          <path d="M8 2.5 9.7 6l3.8.5-2.8 2.6.7 3.7L8 11l-3.4 1.8.7-3.7L2.5 6.5 6.3 6Z" />
+        </svg>
+      );
+    case "flame":
+      return (
+        <svg {...common}>
+          <path d="M8 14c-2.8 0-4.5-2-4.5-4.3 0-1.4.8-2.5 1.7-3.4-.2.9.3 1.6 1 1.6.5 0 .8-.3.8-.8C7 5.7 6 4.5 6.5 2.5c.4-.1 1.5.5 2.5 2 1 1.5 2.5 3 2.5 5.2C11.5 12 9.8 14 8 14Z" />
+        </svg>
+      );
+    case "pause":
+      return (
+        <svg {...common}>
+          <rect x="4" y="3" width="2.5" height="10" rx="0.5" />
+          <rect x="9.5" y="3" width="2.5" height="10" rx="0.5" />
+        </svg>
+      );
+    case "plane":
+      return (
+        <svg {...common}>
+          <path d="M2 9.5 14 5l-1 4-9 3 1.5-2L2 9.5Z" />
+        </svg>
+      );
+    case "zzz":
+      return (
+        <svg {...common}>
+          <path d="M3 4h4l-4 5h4M9 8h3.5l-3.5 4h3.5" />
+        </svg>
+      );
+    case "medal":
+      return (
+        <svg {...common}>
+          <circle cx="8" cy="10" r="3.5" />
+          <path d="M5.5 7.5 4 2.5h8L10.5 7.5" />
+        </svg>
+      );
+  }
+}
+
 function FunFact({
+  icon,
   label,
   value,
   detail,
 }: {
+  icon: IconKey;
   label: string;
   value: string;
   detail?: string;
 }) {
   return (
-    <div className="border border-hair px-4 py-3 rounded-[2px]">
-      <div
-        className="font-mono text-[10px] uppercase text-muted"
-        style={{ letterSpacing: "0.1em" }}
-      >
-        {label}
+    <div
+      className="group relative bg-[color-mix(in_oklab,var(--color-event-past)_60%,transparent)] border border-transparent hover:border-hair px-4 py-3.5 rounded-[2px] transition-colors"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-bg text-text border border-hair">
+          <StatIcon name={icon} />
+        </span>
+        <span
+          className="font-mono text-[10px] uppercase text-muted"
+          style={{ letterSpacing: "0.1em" }}
+        >
+          {label}
+        </span>
       </div>
       <div
-        className="font-serif text-[20px] font-semibold mt-1"
+        className="font-serif text-[22px] md:text-[24px] font-semibold leading-[1.1]"
         style={{ letterSpacing: "-0.02em" }}
       >
         {value}
       </div>
       {detail && (
         <div
-          className="mt-1 font-mono text-[11px] uppercase text-faint"
-          style={{ letterSpacing: "0.04em" }}
+          className="mt-1.5 text-[11px] text-muted leading-snug"
+          style={{ letterSpacing: "0.01em" }}
         >
           {detail}
         </div>
       )}
+    </div>
+  );
+}
+
+function BigStat({
+  label,
+  value,
+  suffix,
+}: {
+  label: string;
+  value: string;
+  suffix?: string;
+}) {
+  return (
+    <div className="md:px-2 first:md:pl-0">
+      <div
+        className="font-mono text-[10px] md:text-[11px] uppercase text-muted mb-2"
+        style={{ letterSpacing: "0.12em" }}
+      >
+        {label}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span
+          className="font-serif text-[44px] md:text-[64px] font-semibold leading-[0.95] tabular"
+          style={{ letterSpacing: "-0.035em" }}
+        >
+          {value}
+        </span>
+        {suffix && (
+          <span
+            className="font-mono text-[12px] md:text-[14px] text-muted uppercase"
+            style={{ letterSpacing: "0.08em" }}
+          >
+            {suffix}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
