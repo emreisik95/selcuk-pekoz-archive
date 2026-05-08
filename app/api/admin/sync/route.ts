@@ -29,15 +29,14 @@ export async function POST(req: Request) {
   inflight = true;
 
   const script = kind === "live" ? "scripts/check-live.ts" : "scripts/sync.ts";
-  const child = spawn(
-    "node",
-    ["node_modules/tsx/dist/cli.mjs", script],
-    {
-      detached: true,
-      stdio: "ignore",
-      env: { ...process.env, SYNC_TRIGGER: "manual" },
-    },
-  );
+  // Build the path at runtime so Turbopack doesn't try to resolve cli.mjs
+  // as a build-time module dependency.
+  const tsxBin = ["node_modules", "tsx", "dist", "cli.mjs"].join("/");
+  const child = spawn("node", [tsxBin, script], {
+    detached: true,
+    stdio: "ignore",
+    env: { ...process.env, SYNC_TRIGGER: "manual" },
+  });
   child.on("close", () => {
     inflight = false;
   });
