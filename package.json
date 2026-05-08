@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "sync": "tsx scripts/sync.ts"
+    "sync": "tsx scripts/sync.ts",
+    "check-live": "tsx scripts/check-live.ts"
   },
   "dependencies": {
     "next": "16.2.5",

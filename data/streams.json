@@ -1,19 +1,19 @@
 {
-  "syncedAt": "2026-05-07T19:42:13.468Z",
+  "syncedAt": "2026-05-08T06:00:50.472Z",
   "channelId": "UCUMvm0XpXaTfICuGMWegUqQ",
   "channelTitle": "Selçuk Peköz",
   "handle": "@SelçukPeköz",
   "streams": [
     {
       "id": "tYAgz4FknQY",
-      "kind": "live",
+      "kind": "completed",
       "title": "🔴CANLI: MARIO PARTY JAMIRYOOOO 2026-05-07 22:34",
       "scheduledAt": "2026-05-07T17:20:51.000Z",
       "actualStartAt": "2026-05-07T17:20:51.000Z",
-      "actualEndAt": null,
-      "durationSec": null,
-      "viewCount": 465,
-      "concurrentViewers": 38,
+      "actualEndAt": "2026-05-08T06:00:50.471Z",
+      "durationSec": 14477,
+      "viewCount": 1051,
+      "concurrentViewers": null,
       "palette": [
         "#0d1421",
         "#06b6d4",
