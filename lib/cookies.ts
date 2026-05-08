@@ -12,11 +12,25 @@ let materialized: string | null | undefined;
 export function resolveCookiesPath(): string | null {
   if (materialized !== undefined) return materialized;
 
+  // Prefer base64 — env vars become Dockerfile ARGs in Coolify, and
+  // multiline values blow up the build. Plain text is still supported
+  // for environments that handle it cleanly.
+  const b64 = process.env.YOUTUBE_COOKIES_B64;
   const inline = process.env.YOUTUBE_COOKIES_TXT;
-  if (inline && inline.trim().length > 0) {
+  let content: string | null = null;
+  if (b64 && b64.trim().length > 0) {
+    try {
+      content = Buffer.from(b64.trim(), "base64").toString("utf8");
+    } catch {
+      content = null;
+    }
+  } else if (inline && inline.trim().length > 0) {
+    content = inline;
+  }
+  if (content) {
     const dir = mkdtempSync(join(tmpdir(), "yt-cookies-"));
     const path = join(dir, "cookies.txt");
-    writeFileSync(path, inline, { mode: 0o600 });
+    writeFileSync(path, content, { mode: 0o600 });
     materialized = path;
     return path;
   }
