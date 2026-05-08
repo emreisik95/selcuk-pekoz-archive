@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { ManualEvent } from "@/lib/types";
 import type { SyncLogEntry } from "@/lib/sync-log";
 import type {
@@ -10,6 +10,8 @@ import type {
   SocialLink,
   SocialPlatform,
 } from "@/lib/admin-config";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { PreviewPane } from "@/components/PreviewPane";
 
 type EventWithLabel = ManualEvent & { dateLabel: string };
 type Tab = "events" | "content" | "system";
@@ -33,8 +35,26 @@ export function AdminPanel({
   initialConfig: AdminConfig;
   streamCatalog: StreamLite[];
 }) {
-  const [tab, setTab] = useState<Tab>("events");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("t");
+  const tab: Tab =
+    tabParam === "content" || tabParam === "system" ? tabParam : "events";
+  // Bump on every save → preview iframe refreshes
+  const [previewKey, setPreviewKey] = useState(0);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+
+  function setTab(next: Tab) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "events") params.delete("t");
+    else params.set("t", next);
+    const qs = params.toString();
+    router.replace(qs ? `?${qs}` : "?", { scroll: false });
+  }
+
+  function bumpPreview() {
+    setPreviewKey((k) => k + 1);
+  }
 
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
@@ -42,10 +62,30 @@ export function AdminPanel({
     router.refresh();
   }
 
+  // Show preview pane only on Content tab, where changes are mostly
+  // visible in the public site.
+  const showPreview = tab === "content";
+
   return (
     <div className="px-5 md:px-10 pt-5 pb-10">
+      <nav
+        className="text-[11px] text-muted mb-3"
+        aria-label="Konum"
+      >
+        <ol className="flex items-center gap-1.5">
+          <li>Yönetici paneli</li>
+          <li aria-hidden>/</li>
+          <li className="text-text">
+            {tab === "events"
+              ? "Manuel yayınlar"
+              : tab === "content"
+                ? "İçerik"
+                : "Sistem"}
+          </li>
+        </ol>
+      </nav>
       <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
-        <div className="flex">
+        <div role="tablist" aria-label="Bölüm" className="flex">
           {([
             ["events", "Manuel yayınlar"],
             ["content", "İçerik"],
@@ -53,13 +93,15 @@ export function AdminPanel({
           ] as const).map(([k, label], i) => (
             <button
               key={k}
+              role="tab"
               type="button"
+              aria-selected={tab === k}
               onClick={() => setTab(k)}
               className={
-                "border border-hair text-[12px] px-3 py-1.5 rounded-[2px] " +
+                "border border-hair text-[13px] px-4 py-2 rounded-[2px] " +
                 (tab === k
                   ? "bg-ink text-bg border-ink"
-                  : "bg-transparent text-text") +
+                  : "bg-transparent text-text hover:border-text") +
                 (i > 0 ? " -ml-px" : "")
               }
             >
@@ -69,18 +111,49 @@ export function AdminPanel({
         </div>
         <button
           type="button"
-          onClick={logout}
+          onClick={() => setLogoutOpen(true)}
           className="text-[13px] text-muted hover:text-text"
         >
           Çıkış yap
         </button>
       </div>
 
-      {tab === "events" && <EventsTab initialEvents={initialEvents} />}
-      {tab === "content" && (
-        <ContentTab initialConfig={initialConfig} catalog={streamCatalog} />
-      )}
-      {tab === "system" && <SystemTab initialLog={initialLog} />}
+      <div
+        className={
+          showPreview
+            ? "grid grid-cols-1 xl:grid-cols-[1fr_min(40vw,520px)] gap-6 xl:gap-10"
+            : ""
+        }
+      >
+        <div className="min-w-0">
+          {tab === "events" && <EventsTab initialEvents={initialEvents} />}
+          {tab === "content" && (
+            <ContentTab
+              initialConfig={initialConfig}
+              catalog={streamCatalog}
+              onSaved={bumpPreview}
+            />
+          )}
+          {tab === "system" && <SystemTab initialLog={initialLog} />}
+        </div>
+        {showPreview && (
+          <div className="hidden xl:block">
+            <PreviewPane refreshKey={previewKey} />
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={logoutOpen}
+        title="Çıkış yapılsın mı?"
+        message="Tekrar girmek için şifren gerekecek."
+        confirmLabel="Çıkış yap"
+        onConfirm={() => {
+          setLogoutOpen(false);
+          logout();
+        }}
+        onCancel={() => setLogoutOpen(false)}
+      />
     </div>
   );
 }
@@ -93,6 +166,13 @@ function EventsTab({ initialEvents }: { initialEvents: EventWithLabel[] }) {
   const [mode, setMode] = useState<"none" | "single" | "recurring">("none");
   const [editing, setEditing] = useState<string | null>(null);
   const [linking, setLinking] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message?: string;
+    confirmLabel: string;
+    destructive?: boolean;
+    run: () => Promise<void> | void;
+  } | null>(null);
 
   function refresh() {
     router.refresh();
@@ -192,9 +272,35 @@ function EventsTab({ initialEvents }: { initialEvents: EventWithLabel[] }) {
       )}
 
       {events.length === 0 ? (
-        <p className="font-mono text-[12px] text-muted py-8 text-center">
-          Henüz manuel yayın yok.
-        </p>
+        <div className="border border-dashed border-hair rounded-[2px] py-12 px-6 text-center">
+          <h3
+            className="font-serif text-[18px] font-semibold mb-1.5"
+            style={{ letterSpacing: "-0.015em" }}
+          >
+            Henüz planlanmış bir yayın yok
+          </h3>
+          <p className="text-[13px] text-muted leading-relaxed mb-5 max-w-sm mx-auto">
+            Selçuk&apos;un yayın yapacağı bir tarih ve başlık ekle. Sonraki sync
+            sırasında YouTube&apos;da gerçek yayın bulunursa otomatik
+            eşleşir.
+          </p>
+          <div className="flex justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMode("single")}
+              className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px]"
+            >
+              + İlk yayını ekle
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("recurring")}
+              className="border border-hair text-[13px] px-4 py-2 rounded-[2px] hover:border-text"
+            >
+              ⟳ Tekrar eden plan
+            </button>
+          </div>
+        </div>
       ) : (
         <ul className="divide-y divide-hair border-y border-hair">
           {events.map((e) => (
@@ -240,46 +346,74 @@ function EventsTab({ initialEvents }: { initialEvents: EventWithLabel[] }) {
                   event={e}
                   onEdit={() => setEditing(e.id)}
                   onLink={() => setLinking(e.id)}
-                  onDelete={async () => {
-                    if (!confirm("Bu yayını silmek istiyor musun?")) return;
-                    await fetch(`/api/admin/events?id=${e.id}`, {
-                      method: "DELETE",
-                    });
-                    setEvents((cur) => cur.filter((x) => x.id !== e.id));
-                    refresh();
-                  }}
-                  onUnlink={async () => {
-                    if (!confirm("YouTube bağlantısını kaldırmak istiyor musun?"))
-                      return;
-                    const res = await fetch(
-                      `/api/admin/events?id=${e.id}`,
-                      {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ unlink: true }),
+                  onDelete={() =>
+                    setConfirmAction({
+                      title: "Yayını sil",
+                      message: `"${e.title}" planlı yayını silinsin mi?`,
+                      confirmLabel: "Sil",
+                      destructive: true,
+                      run: async () => {
+                        await fetch(`/api/admin/events?id=${e.id}`, {
+                          method: "DELETE",
+                        });
+                        setEvents((cur) => cur.filter((x) => x.id !== e.id));
+                        refresh();
                       },
-                    );
-                    if (res.ok) {
-                      setEvents((cur) =>
-                        cur.map((x) =>
-                          x.id === e.id
-                            ? {
-                                ...x,
-                                youtubeId: undefined,
-                                matchedAt: undefined,
-                              }
-                            : x,
-                        ),
-                      );
-                      refresh();
-                    }
-                  }}
+                    })
+                  }
+                  onUnlink={() =>
+                    setConfirmAction({
+                      title: "YouTube bağlantısı kaldırılsın mı?",
+                      message:
+                        "Yayın yine planlı yayınlar listesinde kalır; sadece YouTube ID bağı kopar.",
+                      confirmLabel: "Bağı kopar",
+                      destructive: true,
+                      run: async () => {
+                        const res = await fetch(
+                          `/api/admin/events?id=${e.id}`,
+                          {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ unlink: true }),
+                          },
+                        );
+                        if (res.ok) {
+                          setEvents((cur) =>
+                            cur.map((x) =>
+                              x.id === e.id
+                                ? {
+                                    ...x,
+                                    youtubeId: undefined,
+                                    matchedAt: undefined,
+                                  }
+                                : x,
+                            ),
+                          );
+                          refresh();
+                        }
+                      },
+                    })
+                  }
                 />
               )}
             </li>
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction?.title ?? ""}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel ?? "Onayla"}
+        destructive={confirmAction?.destructive}
+        onConfirm={async () => {
+          const a = confirmAction;
+          setConfirmAction(null);
+          if (a) await a.run();
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
@@ -800,14 +934,23 @@ function RecurringForm({
 function ContentTab({
   initialConfig,
   catalog,
+  onSaved,
 }: {
   initialConfig: AdminConfig;
   catalog: StreamLite[];
+  onSaved?: () => void;
 }) {
   const router = useRouter();
   const [config, setConfig] = useState<AdminConfig>(initialConfig);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(id);
+  }, [toast]);
 
   async function patch(body: object) {
     setBusy(true);
@@ -825,7 +968,9 @@ function ContentTab({
       }
       const next = (await res.json()) as AdminConfig;
       setConfig(next);
+      setToast("Kaydedildi");
       router.refresh();
+      onSaved?.();
       return true;
     } finally {
       setBusy(false);
@@ -852,6 +997,16 @@ function ContentTab({
       />
       <OverrideEditor catalog={catalog} busy={busy} onSave={patch} />
       <WebhookManager config={config} busy={busy} onSave={patch} />
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 -translate-x-1/2 bottom-6 z-[60] bg-ink text-bg text-[12px] px-4 py-2.5 rounded-[2px] shadow-lg"
+        >
+          ✓ {toast}
+        </div>
+      )}
     </div>
   );
 }
