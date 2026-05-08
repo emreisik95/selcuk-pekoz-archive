@@ -3,7 +3,7 @@
 // Writes data/streams.json + data/channel.json.
 
 import { spawn } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { config as loadEnv } from "dotenv";
 import type { Short, Stream, StreamKind } from "../lib/types";
@@ -290,6 +290,29 @@ async function main() {
     s.episodeNo = i + 1;
   });
 
+  // Safety: refuse to overwrite the live file with a tiny fetch. yt-dlp can
+  // briefly return 1–3 entries when the cookie expires, anti-bot trips, or
+  // YouTube hiccups. Demand at least 50% of the existing count to commit.
+  let prevCount = 0;
+  if (existsSync(STREAMS_OUT)) {
+    try {
+      const prev = JSON.parse(readFileSync(STREAMS_OUT, "utf8")) as {
+        streams?: Stream[];
+      };
+      prevCount = prev.streams?.length ?? 0;
+    } catch {
+      prevCount = 0;
+    }
+  }
+  const minAcceptable = Math.max(10, Math.floor(prevCount * 0.5));
+  if (streams.length < minAcceptable) {
+    throw new Error(
+      `Sync sonucu (${streams.length}) mevcut veriden çok düşük (${prevCount}). ` +
+        `Cookies süresi geçmiş veya anti-bot tetiklenmiş olabilir. ` +
+        `Mevcut streams.json korundu.`,
+    );
+  }
+
   mkdirSync(dirname(STREAMS_OUT), { recursive: true });
   writeFileSync(
     STREAMS_OUT,
@@ -348,21 +371,40 @@ async function main() {
       (a, b) =>
         new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
     );
-    writeFileSync(
-      SHORTS_OUT,
-      JSON.stringify(
-        {
-          syncedAt: new Date().toISOString(),
-          channelId: channel?.id ?? "",
-          channelTitle: channel?.title ?? "",
-          handle: HANDLE,
-          shorts,
-        },
-        null,
-        2,
-      ),
-    );
-    console.log(`✓ ${shorts.length} short yazıldı: ${SHORTS_OUT}`);
+
+    let prevShortCount = 0;
+    if (existsSync(SHORTS_OUT)) {
+      try {
+        const prev = JSON.parse(readFileSync(SHORTS_OUT, "utf8")) as {
+          shorts?: unknown[];
+        };
+        prevShortCount = prev.shorts?.length ?? 0;
+      } catch {
+        prevShortCount = 0;
+      }
+    }
+    const minShorts = Math.max(5, Math.floor(prevShortCount * 0.5));
+    if (shorts.length < minShorts) {
+      console.error(
+        `× Shorts (${shorts.length}) mevcut (${prevShortCount}) yarısının altında — dosyaya yazılmadı.`,
+      );
+    } else {
+      writeFileSync(
+        SHORTS_OUT,
+        JSON.stringify(
+          {
+            syncedAt: new Date().toISOString(),
+            channelId: channel?.id ?? "",
+            channelTitle: channel?.title ?? "",
+            handle: HANDLE,
+            shorts,
+          },
+          null,
+          2,
+        ),
+      );
+      console.log(`✓ ${shorts.length} short yazıldı: ${SHORTS_OUT}`);
+    }
   } catch (err) {
     console.error(
       "× Shorts çekilemedi (yayınlar yine yazıldı):",
