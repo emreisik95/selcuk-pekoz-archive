@@ -5,13 +5,15 @@ import { Thumb } from "@/components/Thumb";
 import { Countdown } from "@/components/Countdown";
 import { BellIcon, ExtIcon, ArrowIcon } from "@/components/Icon";
 import {
+  getAllStreams,
   getNextStream,
   getNow,
   getPastStreams,
   getUpcomingStreams,
   isUsingMockData,
 } from "@/lib/streams";
-import { dateTR, relTR } from "@/lib/fmt";
+import { getAdminConfig } from "@/lib/admin-config";
+import { dateTR, relTR, views as fmtViews } from "@/lib/fmt";
 import Link from "next/link";
 import type { Stream } from "@/lib/types";
 
@@ -94,6 +96,46 @@ function PastWeekSection({ past, now }: { past: Stream[]; now: Date }) {
   );
 }
 
+function PinnedSection({ stream, now }: { stream: Stream; now: Date }) {
+  const d = dateTR(stream.scheduledAt);
+  return (
+    <section className="border-t border-hair px-5 md:px-10 pt-6 md:pt-9 pb-5 md:pb-7">
+      <div
+        className="font-mono text-[10px] md:text-[11px] uppercase text-muted mb-4"
+        style={{ letterSpacing: "0.12em" }}
+      >
+        ★ Sabitlenmiş yayın
+      </div>
+      <Link href={`/y/${stream.id}`} className="group grid grid-cols-1 md:grid-cols-[420px_1fr] gap-5 md:gap-8 items-start">
+        <div className="aspect-video rounded-[2px] overflow-hidden bg-black">
+          <Thumb stream={stream} />
+        </div>
+        <div>
+          <h2
+            className="font-serif text-[22px] md:text-[28px] font-medium leading-[1.15] text-balance group-hover:underline decoration-hair underline-offset-4"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            {stream.title}
+          </h2>
+          <div
+            className="mt-2 font-mono text-[11px] md:text-[12px] text-muted uppercase"
+            style={{ letterSpacing: "0.04em" }}
+          >
+            {d.weekday} · {d.day} {d.monthLong} {d.year}
+            {stream.viewCount ? ` · ${fmtViews(stream.viewCount)} izlenme` : ""}
+            {" · "}{relTR(stream.scheduledAt, now)}
+          </div>
+          {stream.description && (
+            <p className="mt-3 text-[13px] text-muted leading-relaxed line-clamp-3 max-w-[640px]">
+              {stream.description}
+            </p>
+          )}
+        </div>
+      </Link>
+    </section>
+  );
+}
+
 export const revalidate = 60;
 
 export default function HomePage() {
@@ -102,6 +144,10 @@ export default function HomePage() {
   const next = getNextStream();
   const now = getNow();
   const pinned = isUsingMockData();
+  const cfg = getAdminConfig();
+  const pinnedStream = cfg.pinnedVideoId
+    ? getAllStreams().find((s) => s.id === cfg.pinnedVideoId)
+    : undefined;
 
   if (!next) {
     const last = past[0];
@@ -274,6 +320,11 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Pinned stream */}
+        {pinnedStream && pinnedStream.id !== next?.id && (
+          <PinnedSection stream={pinnedStream} now={now} />
+        )}
 
         {/* Upcoming strip */}
         <section className="px-5 md:px-10 pt-6 md:pt-9 pb-5 md:pb-7">

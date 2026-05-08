@@ -1,19 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ManualEvent } from "@/lib/types";
 import type { SyncLogEntry } from "@/lib/sync-log";
+import type { AdminConfig, BannerTone } from "@/lib/admin-config";
 
 type EventWithLabel = ManualEvent & { dateLabel: string };
-type Tab = "events" | "system";
+type Tab = "events" | "content" | "system";
+
+type StreamLite = {
+  id: string;
+  title: string;
+  kind: string;
+  scheduledAt: string;
+  thumbnailUrl: string;
+};
 
 export function AdminPanel({
   initialEvents,
   initialLog,
+  initialConfig,
+  streamCatalog,
 }: {
   initialEvents: EventWithLabel[];
   initialLog: SyncLogEntry[];
+  initialConfig: AdminConfig;
+  streamCatalog: StreamLite[];
 }) {
   const [tab, setTab] = useState<Tab>("events");
   const router = useRouter();
@@ -30,6 +43,7 @@ export function AdminPanel({
         <div className="flex">
           {([
             ["events", "Manuel yayınlar"],
+            ["content", "İçerik"],
             ["system", "Sistem"],
           ] as const).map(([k, label], i) => (
             <button
@@ -58,11 +72,11 @@ export function AdminPanel({
         </button>
       </div>
 
-      {tab === "events" ? (
-        <EventsTab initialEvents={initialEvents} />
-      ) : (
-        <SystemTab initialLog={initialLog} />
+      {tab === "events" && <EventsTab initialEvents={initialEvents} />}
+      {tab === "content" && (
+        <ContentTab initialConfig={initialConfig} catalog={streamCatalog} />
       )}
+      {tab === "system" && <SystemTab initialLog={initialLog} />}
     </div>
   );
 }
@@ -80,8 +94,44 @@ function EventsTab({ initialEvents }: { initialEvents: EventWithLabel[] }) {
     router.refresh();
   }
 
+  // Manual events that were planned 12+ hours ago but still don't have a
+  // matched YouTube video — likely Selçuk skipped or the auto-match failed.
+  const now = Date.now();
+  const stuckUnmatched = events.filter((e) => {
+    if (e.youtubeId) return false;
+    return new Date(e.scheduledAt).getTime() + 12 * 3600 * 1000 < now;
+  });
+
   return (
     <div>
+      {stuckUnmatched.length > 0 && (
+        <div className="mb-5 border border-red bg-red/10 rounded-[2px] px-4 py-3">
+          <div
+            className="font-mono text-[10px] uppercase text-red mb-1"
+            style={{ letterSpacing: "0.1em" }}
+          >
+            ⚠ Eşleşmeyen yayınlar
+          </div>
+          <p className="text-[13px] text-text leading-snug mb-2">
+            {stuckUnmatched.length} planlı yayın 12 saatten uzun süredir
+            YouTube'da bulunamadı. Selçuk iptal etmiş olabilir, ya da eşleştirmeyi
+            elle yapman gerekiyor.
+          </p>
+          <ul className="text-[12px] text-muted space-y-0.5">
+            {stuckUnmatched.slice(0, 5).map((e) => (
+              <li key={e.id}>
+                · {e.title}{" "}
+                <span className="font-mono text-[10px] uppercase text-faint">
+                  {e.dateLabel}
+                </span>
+              </li>
+            ))}
+            {stuckUnmatched.length > 5 && (
+              <li className="text-faint">… +{stuckUnmatched.length - 5} daha</li>
+            )}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button
           type="button"
@@ -738,6 +788,506 @@ function RecurringForm({
         />
       </Field>
     </FormCard>
+  );
+}
+
+// ── Content tab ────────────────────────────────────────────────────────────
+
+function ContentTab({
+  initialConfig,
+  catalog,
+}: {
+  initialConfig: AdminConfig;
+  catalog: StreamLite[];
+}) {
+  const router = useRouter();
+  const [config, setConfig] = useState<AdminConfig>(initialConfig);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function patch(body: object) {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setMsg(j.error ?? "Kaydedilemedi");
+        return false;
+      }
+      const next = (await res.json()) as AdminConfig;
+      setConfig(next);
+      router.refresh();
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-10">
+      <BannerEditor config={config} busy={busy} onSave={patch} msg={msg} />
+      <PinnedEditor
+        config={config}
+        catalog={catalog}
+        busy={busy}
+        onSave={patch}
+      />
+      <HiddenList
+        config={config}
+        catalog={catalog}
+        busy={busy}
+        onSave={patch}
+      />
+      <OverrideEditor catalog={catalog} busy={busy} onSave={patch} />
+      <WebhookManager config={config} busy={busy} onSave={patch} />
+    </div>
+  );
+}
+
+function BannerEditor({
+  config,
+  busy,
+  onSave,
+  msg,
+}: {
+  config: AdminConfig;
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+  msg: string | null;
+}) {
+  const [message, setMessage] = useState(config.banner?.message ?? "");
+  const [tone, setTone] = useState<BannerTone>(config.banner?.tone ?? "info");
+
+  return (
+    <section>
+      <SectionHeader title="Site banner" />
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-start">
+        <div className="flex flex-col gap-2">
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Cuma akşamı özel maraton 21:00'de!"
+            className={inputCls}
+          />
+          <div className="flex items-center gap-2">
+            <span
+              className="font-mono text-[10px] uppercase text-muted"
+              style={{ letterSpacing: "0.08em" }}
+            >
+              Ton
+            </span>
+            {(["info", "warning", "celebration"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTone(t)}
+                className={
+                  "border text-[12px] px-2.5 py-1 rounded-[2px] " +
+                  (tone === t
+                    ? "bg-ink text-bg border-ink"
+                    : "border-hair text-text hover:border-text")
+                }
+              >
+                {t === "info" ? "Bilgi" : t === "warning" ? "Uyarı" : "Kutlama"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              onSave({ banner: message ? { message, tone } : null })
+            }
+            className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+          >
+            Kaydet
+          </button>
+          {config.banner && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setMessage("");
+                onSave({ banner: null });
+              }}
+              className="border border-hair text-[12px] px-3 py-2 rounded-[2px] hover:border-text disabled:opacity-50"
+            >
+              Kaldır
+            </button>
+          )}
+        </div>
+      </div>
+      {msg && (
+        <p className="mt-2 font-mono text-[11px] text-muted">{msg}</p>
+      )}
+      {config.banner && (
+        <p
+          className="mt-2 font-mono text-[10px] uppercase text-faint"
+          style={{ letterSpacing: "0.06em" }}
+        >
+          Yayında — {new Date(config.banner.updatedAt).toLocaleString("tr-TR")}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function StreamPicker({
+  catalog,
+  value,
+  onChange,
+  placeholder = "Yayın ara…",
+}: {
+  catalog: StreamLite[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder?: string;
+}) {
+  const [q, setQ] = useState("");
+  const matches = useMemo(() => {
+    const query = q.trim().toLocaleLowerCase("tr-TR");
+    if (!query) return [] as StreamLite[];
+    return catalog
+      .filter((s) =>
+        s.title.toLocaleLowerCase("tr-TR").includes(query),
+      )
+      .slice(0, 8);
+  }, [catalog, q]);
+  const selected = catalog.find((s) => s.id === value);
+
+  return (
+    <div className="flex flex-col gap-2">
+      {selected && (
+        <div className="flex items-center gap-3 border border-hair rounded-[2px] px-3 py-2">
+          <div className="text-[13px] font-medium leading-tight flex-1 min-w-0 truncate">
+            {selected.title}
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="font-mono text-[11px] uppercase text-muted hover:text-red"
+            style={{ letterSpacing: "0.08em" }}
+          >
+            Kaldır
+          </button>
+        </div>
+      )}
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={placeholder}
+        className={inputCls}
+      />
+      {matches.length > 0 && (
+        <ul className="border border-hair rounded-[2px] divide-y divide-hair max-h-60 overflow-y-auto">
+          {matches.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange(s.id);
+                  setQ("");
+                }}
+                className="w-full text-left px-3 py-2 text-[13px] hover:bg-event-past"
+              >
+                <div className="font-medium leading-tight line-clamp-1">
+                  {s.title}
+                </div>
+                <div
+                  className="font-mono text-[10px] uppercase text-faint mt-0.5"
+                  style={{ letterSpacing: "0.06em" }}
+                >
+                  {s.kind} · {new Date(s.scheduledAt).toLocaleDateString("tr-TR")}
+                </div>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PinnedEditor({
+  config,
+  catalog,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  catalog: StreamLite[];
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [pick, setPick] = useState<string>(config.pinnedVideoId ?? "");
+  return (
+    <section>
+      <SectionHeader title="Sabitlenmiş yayın (anasayfa)" />
+      <p className="mb-3 text-[12px] text-muted">
+        Anasayfada hero'nun altında öne çıkar.
+      </p>
+      <StreamPicker catalog={catalog} value={pick} onChange={setPick} />
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          disabled={busy || pick === (config.pinnedVideoId ?? "")}
+          onClick={() => onSave({ pinnedVideoId: pick || null })}
+          className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+        >
+          Kaydet
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function HiddenList({
+  config,
+  catalog,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  catalog: StreamLite[];
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [pick, setPick] = useState("");
+  const hidden = config.hiddenVideoIds
+    .map((id) => catalog.find((s) => s.id === id))
+    .filter((s): s is StreamLite => Boolean(s));
+
+  return (
+    <section>
+      <SectionHeader
+        title={`Gizlenmiş yayınlar (${config.hiddenVideoIds.length})`}
+      />
+      <p className="mb-3 text-[12px] text-muted">
+        Bu yayınlar tüm public sayfalarda gizlenir. Admin panelden yeniden
+        görünür yapabilirsin.
+      </p>
+      <StreamPicker
+        catalog={catalog.filter((s) => !config.hiddenVideoIds.includes(s.id))}
+        value={pick}
+        onChange={setPick}
+        placeholder="Gizlenecek yayını ara…"
+      />
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          disabled={busy || !pick}
+          onClick={async () => {
+            const ok = await onSave({ hideVideoId: pick });
+            if (ok) setPick("");
+          }}
+          className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+        >
+          Gizle
+        </button>
+      </div>
+      {hidden.length > 0 && (
+        <ul className="mt-4 divide-y divide-hair border-y border-hair">
+          {hidden.map((s) => (
+            <li
+              key={s.id}
+              className="py-2.5 flex items-center justify-between gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] font-medium leading-tight truncate">
+                  {s.title}
+                </div>
+                <div
+                  className="font-mono text-[10px] uppercase text-faint mt-0.5"
+                  style={{ letterSpacing: "0.06em" }}
+                >
+                  {new Date(s.scheduledAt).toLocaleDateString("tr-TR")}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSave({ unhideVideoId: s.id })}
+                className="font-mono text-[11px] uppercase text-muted hover:text-text"
+                style={{ letterSpacing: "0.08em" }}
+              >
+                Geri göster
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function OverrideEditor({
+  catalog,
+  busy,
+  onSave,
+}: {
+  catalog: StreamLite[];
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [pick, setPick] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [thumb, setThumb] = useState("");
+
+  return (
+    <section>
+      <SectionHeader title="Yayın override" />
+      <p className="mb-3 text-[12px] text-muted">
+        Seçili yayının başlık, açıklama veya kapağını değiştir. Boş bırakırsan
+        mevcut değer kalır. Tüm alanları boşaltıp kaydedersen override silinir.
+      </p>
+      <StreamPicker catalog={catalog} value={pick} onChange={setPick} />
+      {pick && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Field label="Başlık (boş = orijinal)" full>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className={inputCls}
+              placeholder={catalog.find((s) => s.id === pick)?.title ?? ""}
+            />
+          </Field>
+          <Field label="Kapak URL" full>
+            <input
+              value={thumb}
+              onChange={(e) => setThumb(e.target.value)}
+              className={inputCls}
+              placeholder={catalog.find((s) => s.id === pick)?.thumbnailUrl ?? ""}
+            />
+          </Field>
+          <Field label="Açıklama" full>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className={inputCls + " resize-y"}
+            />
+          </Field>
+          <div className="md:col-span-2 flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                const ok = await onSave({
+                  override: {
+                    videoId: pick,
+                    title: title || undefined,
+                    description: description || undefined,
+                    thumbnailUrl: thumb || undefined,
+                  },
+                });
+                if (ok) {
+                  setTitle("");
+                  setDescription("");
+                  setThumb("");
+                  setPick("");
+                }
+              }}
+              className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+            >
+              Kaydet
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WebhookManager({
+  config,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  return (
+    <section>
+      <SectionHeader title="Webhook (3rd party event ekleme)" />
+      <p className="mb-3 text-[12px] text-muted">
+        Bu token ile dış servisler (Discord botu, IFTTT, Zapier) <code>POST /api/webhook/event</code> üzerinden manuel yayın ekleyebilir.
+      </p>
+      {config.webhookToken ? (
+        <div className="border border-hair rounded-[2px] px-3 py-2 mb-3">
+          <div
+            className="font-mono text-[10px] uppercase text-muted mb-1"
+            style={{ letterSpacing: "0.08em" }}
+          >
+            Aktif token
+          </div>
+          <code className="text-[12px] break-all select-all">
+            {config.webhookToken}
+          </code>
+        </div>
+      ) : (
+        <p
+          className="font-mono text-[11px] uppercase text-faint mb-3"
+          style={{ letterSpacing: "0.06em" }}
+        >
+          Token yok — webhook devre dışı
+        </p>
+      )}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => {
+            if (
+              config.webhookToken &&
+              !confirm("Yeni token, eskisini geçersiz kılar. Devam?")
+            )
+              return;
+            onSave({ rotateWebhook: true });
+          }}
+          className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+        >
+          {config.webhookToken ? "Yeni token üret" : "Token oluştur"}
+        </button>
+      </div>
+      <details className="mt-4">
+        <summary
+          className="cursor-pointer font-mono text-[11px] uppercase text-muted hover:text-text"
+          style={{ letterSpacing: "0.08em" }}
+        >
+          Örnek istek
+        </summary>
+        <pre className="mt-2 text-[11px] bg-event-past p-3 rounded-[2px] overflow-x-auto">
+{`curl -X POST https://sp.emre.zip/api/webhook/event \\
+  -H "Authorization: Bearer ${config.webhookToken ?? "<TOKEN>"}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Pazartesi Sohbeti",
+    "scheduledAt": "2026-05-12T18:00:00Z",
+    "description": "haftaya bakış",
+    "durationMin": 120
+  }'`}
+        </pre>
+      </details>
+    </section>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <div
+      className="font-mono text-[10px] uppercase text-muted mb-3"
+      style={{ letterSpacing: "0.12em" }}
+    >
+      {title}
+    </div>
   );
 }
 

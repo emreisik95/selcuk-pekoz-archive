@@ -12,6 +12,24 @@ import {
   upcomingStreams as mockUpcoming,
   NOW as MOCK_NOW,
 } from "./mock-data";
+import { getAdminConfig } from "./admin-config";
+
+function applyAdminConfig(streams: Stream[]): Stream[] {
+  const cfg = getAdminConfig();
+  const hidden = new Set(cfg.hiddenVideoIds);
+  return streams
+    .filter((s) => !hidden.has(s.id))
+    .map((s) => {
+      const ov = cfg.overrides[s.id];
+      if (!ov) return s;
+      return {
+        ...s,
+        title: ov.title ?? s.title,
+        description: ov.description ?? s.description,
+        thumbnailUrl: ov.thumbnailUrl ?? s.thumbnailUrl,
+      };
+    });
+}
 
 type StreamFile = {
   syncedAt: string;
@@ -83,35 +101,42 @@ export function getChannelMeta(): { title: string; handle: string } | null {
 
 export function getAllStreams(): Stream[] {
   const f = loadOnce();
+  return applyAdminConfig(f ? f.streams : mockAll);
+}
+
+// Like getAllStreams but skips the hidden filter — used by the admin
+// panel so the operator can still un-hide a video.
+export function getAllStreamsRaw(): Stream[] {
+  const f = loadOnce();
   return f ? f.streams : mockAll;
 }
 
 export function getUpcomingStreams(): Stream[] {
   const f = loadOnce();
-  if (!f) return mockUpcoming;
-  return f.streams
-    .filter((s) => s.kind === "upcoming")
-    .sort(
-      (a, b) =>
-        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
-    );
+  const list = f
+    ? f.streams.filter((s) => s.kind === "upcoming")
+    : mockUpcoming;
+  return applyAdminConfig(list).sort(
+    (a, b) =>
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+  );
 }
 
 export function getLiveStreams(): Stream[] {
   const f = loadOnce();
-  if (!f) return mockLive;
-  return f.streams.filter((s) => s.kind === "live");
+  const list = f ? f.streams.filter((s) => s.kind === "live") : mockLive;
+  return applyAdminConfig(list);
 }
 
 export function getPastStreams(): Stream[] {
   const f = loadOnce();
-  if (!f) return mockPast;
-  return f.streams
-    .filter((s) => s.kind === "completed")
-    .sort(
-      (a, b) =>
-        new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
-    );
+  const list = f
+    ? f.streams.filter((s) => s.kind === "completed")
+    : mockPast;
+  return applyAdminConfig(list).sort(
+    (a, b) =>
+      new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+  );
 }
 
 export function getNextStream(): Stream | null {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Banner } from "@/components/Banner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -69,7 +70,10 @@ export default function RootLayout({
           src="https://analytics.pixelgoblin.link/js/script.js"
         />
       </head>
-      <body className="min-h-dvh flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col">
+        <Banner />
+        {children}
+      </body>
     </html>
   );
 }

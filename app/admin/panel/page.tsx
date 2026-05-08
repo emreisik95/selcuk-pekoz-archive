@@ -6,6 +6,8 @@ import { isAdmin } from "@/lib/auth";
 import { listManualEvents } from "@/lib/manual";
 import { readLog } from "@/lib/sync-log";
 import { dateTR } from "@/lib/fmt";
+import { getAdminConfig } from "@/lib/admin-config";
+import { getAllStreamsRaw } from "@/lib/streams";
 import { AdminPanel } from "./AdminPanel";
 
 export const metadata = {
@@ -21,6 +23,15 @@ export default async function AdminPanelPage() {
       new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
   const syncLog = readLog().slice(0, 20);
+  const config = getAdminConfig();
+  const allStreams = getAllStreamsRaw();
+  const streamCatalog = allStreams.map((s) => ({
+    id: s.id,
+    title: s.title,
+    kind: s.kind,
+    scheduledAt: s.scheduledAt,
+    thumbnailUrl: s.thumbnailUrl ?? "",
+  }));
 
   return (
     <>
@@ -55,6 +66,8 @@ export default async function AdminPanelPage() {
             dateLabel: dateLabel(e.scheduledAt),
           }))}
           initialLog={syncLog}
+          initialConfig={config}
+          streamCatalog={streamCatalog}
         />
       </main>
       <Footer />
