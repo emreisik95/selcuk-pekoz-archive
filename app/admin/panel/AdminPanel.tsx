@@ -65,8 +65,7 @@ export function AdminPanel({
         <button
           type="button"
           onClick={logout}
-          className="font-mono text-[11px] uppercase text-muted hover:text-text"
-          style={{ letterSpacing: "0.08em" }}
+          className="text-[13px] text-muted hover:text-text"
         >
           Çıkış yap
         </button>
@@ -875,12 +874,7 @@ function BannerEditor({
             className={inputCls}
           />
           <div className="flex items-center gap-2">
-            <span
-              className="font-mono text-[10px] uppercase text-muted"
-              style={{ letterSpacing: "0.08em" }}
-            >
-              Ton
-            </span>
+            <span className="text-[13px] text-muted">Ton:</span>
             {(["info", "warning", "celebration"] as const).map((t) => (
               <button
                 key={t}
@@ -928,10 +922,7 @@ function BannerEditor({
         <p className="mt-2 font-mono text-[11px] text-muted">{msg}</p>
       )}
       {config.banner && (
-        <p
-          className="mt-2 font-mono text-[10px] uppercase text-faint"
-          style={{ letterSpacing: "0.06em" }}
-        >
+        <p className="mt-2 text-[12px] text-faint">
           Yayında — {new Date(config.banner.updatedAt).toLocaleString("tr-TR")}
         </p>
       )}
@@ -972,8 +963,7 @@ function StreamPicker({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="font-mono text-[11px] uppercase text-muted hover:text-red"
-            style={{ letterSpacing: "0.08em" }}
+            className="text-[12px] text-muted hover:text-red"
           >
             Kaldır
           </button>
@@ -1000,10 +990,7 @@ function StreamPicker({
                 <div className="font-medium leading-tight line-clamp-1">
                   {s.title}
                 </div>
-                <div
-                  className="font-mono text-[10px] uppercase text-faint mt-0.5"
-                  style={{ letterSpacing: "0.06em" }}
-                >
+                <div className="text-[11px] text-faint mt-0.5">
                   {s.kind} · {new Date(s.scheduledAt).toLocaleDateString("tr-TR")}
                 </div>
               </button>
@@ -1103,18 +1090,14 @@ function HiddenList({
                 <div className="text-[13px] font-medium leading-tight truncate">
                   {s.title}
                 </div>
-                <div
-                  className="font-mono text-[10px] uppercase text-faint mt-0.5"
-                  style={{ letterSpacing: "0.06em" }}
-                >
+                <div className="text-[11px] text-faint mt-0.5">
                   {new Date(s.scheduledAt).toLocaleDateString("tr-TR")}
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => onSave({ unhideVideoId: s.id })}
-                className="font-mono text-[11px] uppercase text-muted hover:text-text"
-                style={{ letterSpacing: "0.08em" }}
+                className="text-[12px] text-muted hover:text-text"
               >
                 Geri göster
               </button>
@@ -1222,21 +1205,15 @@ function WebhookManager({
       </p>
       {config.webhookToken ? (
         <div className="border border-hair rounded-[2px] px-3 py-2 mb-3">
-          <div
-            className="font-mono text-[10px] uppercase text-muted mb-1"
-            style={{ letterSpacing: "0.08em" }}
-          >
+          <div className="text-[12px] font-medium text-muted mb-1">
             Aktif token
           </div>
-          <code className="text-[12px] break-all select-all">
+          <code className="font-mono text-[12px] break-all select-all">
             {config.webhookToken}
           </code>
         </div>
       ) : (
-        <p
-          className="font-mono text-[11px] uppercase text-faint mb-3"
-          style={{ letterSpacing: "0.06em" }}
-        >
+        <p className="text-[12px] text-faint mb-3">
           Token yok — webhook devre dışı
         </p>
       )}
@@ -1258,10 +1235,7 @@ function WebhookManager({
         </button>
       </div>
       <details className="mt-4">
-        <summary
-          className="cursor-pointer font-mono text-[11px] uppercase text-muted hover:text-text"
-          style={{ letterSpacing: "0.08em" }}
-        >
+        <summary className="cursor-pointer text-[12px] text-muted hover:text-text">
           Örnek istek
         </summary>
         <pre className="mt-2 text-[11px] bg-event-past p-3 rounded-[2px] overflow-x-auto">
@@ -1282,12 +1256,12 @@ function WebhookManager({
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <div
-      className="font-mono text-[10px] uppercase text-muted mb-3"
-      style={{ letterSpacing: "0.12em" }}
+    <h2
+      className="font-serif text-[20px] md:text-[22px] font-semibold mb-3 text-text"
+      style={{ letterSpacing: "-0.015em" }}
     >
       {title}
-    </div>
+    </h2>
   );
 }
 
@@ -1340,12 +1314,7 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
   return (
     <div className="space-y-8">
       <section>
-        <div
-          className="font-mono text-[10px] uppercase text-muted mb-3"
-          style={{ letterSpacing: "0.12em" }}
-        >
-          Manuel sync
-        </div>
+        <SectionHeader title="Manuel sync" />
         <div className="flex flex-wrap items-center gap-2 mb-3">
           <button
             type="button"
@@ -1366,35 +1335,19 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
           <button
             type="button"
             onClick={refreshLog}
-            className="font-mono text-[11px] uppercase text-muted hover:text-text px-2"
-            style={{ letterSpacing: "0.08em" }}
+            className="text-[12px] text-muted hover:text-text px-2"
           >
             Logu yenile
           </button>
         </div>
-        {msg && (
-          <p
-            className="font-mono text-[11px] text-muted mb-2"
-            style={{ letterSpacing: "0.04em" }}
-          >
-            {msg}
-          </p>
-        )}
-        <p
-          className="font-mono text-[10px] uppercase text-faint"
-          style={{ letterSpacing: "0.06em" }}
-        >
+        {msg && <p className="text-[12px] text-muted mb-2">{msg}</p>}
+        <p className="text-[12px] text-faint">
           Otomatik: full sync saatte bir · canlı kontrol 15 dakikada bir
         </p>
       </section>
 
       <section>
-        <div
-          className="font-mono text-[10px] uppercase text-muted mb-3"
-          style={{ letterSpacing: "0.12em" }}
-        >
-          Son sync'ler
-        </div>
+        <SectionHeader title="Son sync'ler" />
         {log.length === 0 ? (
           <p className="font-mono text-[12px] text-muted">
             Henüz log girişi yok.
@@ -1407,9 +1360,8 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
                 className="py-3 flex flex-col md:flex-row md:items-center gap-1.5 md:gap-4"
               >
                 <div
-                  className="font-mono text-[11px] uppercase tabular shrink-0 w-32"
+                  className="text-[12px] tabular shrink-0 w-32"
                   style={{
-                    letterSpacing: "0.04em",
                     color: e.ok ? "var(--color-text)" : "var(--color-red)",
                   }}
                 >
@@ -1436,20 +1388,14 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
                     )}
                   </div>
                   {e.counts && (
-                    <div
-                      className="mt-0.5 font-mono text-[10px] uppercase text-faint"
-                      style={{ letterSpacing: "0.04em" }}
-                    >
+                    <div className="mt-0.5 text-[11px] text-faint">
                       {Object.entries(e.counts)
                         .map(([k, v]) => `${k}=${v}`)
                         .join(" · ")}
                     </div>
                   )}
                 </div>
-                <div
-                  className="font-mono text-[10px] uppercase text-faint shrink-0"
-                  style={{ letterSpacing: "0.04em" }}
-                >
+                <div className="text-[11px] text-faint shrink-0">
                   {Math.round(e.durationMs / 1000)}s
                 </div>
               </li>
@@ -1476,13 +1422,8 @@ function Field({
   full?: boolean;
 }) {
   return (
-    <label className={(full ? "md:col-span-2 " : "") + "flex flex-col gap-1"}>
-      <span
-        className="font-mono text-[10px] uppercase text-muted"
-        style={{ letterSpacing: "0.08em" }}
-      >
-        {label}
-      </span>
+    <label className={(full ? "md:col-span-2 " : "") + "flex flex-col gap-1.5"}>
+      <span className="text-[12px] font-medium text-muted">{label}</span>
       {children}
     </label>
   );
@@ -1511,17 +1452,16 @@ function FormCard({
       className="border border-hair p-4 md:p-5 rounded-[2px] mb-6"
     >
       <div className="flex items-baseline justify-between mb-4">
-        <div
-          className="font-mono text-[10px] uppercase text-muted"
-          style={{ letterSpacing: "0.08em" }}
+        <h3
+          className="font-serif text-[16px] md:text-[18px] font-semibold"
+          style={{ letterSpacing: "-0.015em" }}
         >
           {title}
-        </div>
+        </h3>
         <button
           type="button"
           onClick={onCancel}
-          className="font-mono text-[11px] uppercase text-muted hover:text-text"
-          style={{ letterSpacing: "0.08em" }}
+          className="text-[12px] text-muted hover:text-text"
         >
           Vazgeç
         </button>
