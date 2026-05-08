@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "sync": "tsx scripts/sync.ts",
-    "check-live": "tsx scripts/check-live.ts"
+    "check-live": "tsx scripts/check-live.ts",
+    "build:scripts": "esbuild scripts/sync.ts scripts/check-live.ts --bundle --platform=node --target=node22 --format=cjs --outdir=dist/scripts --out-extension:.js=.cjs"
   },
   "dependencies": {
     "next": "16.2.5",

@@ -12,7 +12,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build
+RUN npm run build && npm run build:scripts
 
 # ── runner ────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -34,15 +34,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=app:app /app/.next/standalone ./
 COPY --from=builder --chown=app:app /app/.next/static ./.next/static
 
-# tsx runtime + sync script + libs (so the running container can run sync too)
-COPY --from=builder --chown=app:app /app/node_modules/tsx ./node_modules/tsx
-COPY --from=builder --chown=app:app /app/node_modules/dotenv ./node_modules/dotenv
-COPY --from=builder --chown=app:app /app/node_modules/esbuild ./node_modules/esbuild
-COPY --from=builder --chown=app:app /app/node_modules/get-tsconfig ./node_modules/get-tsconfig
-COPY --from=builder --chown=app:app /app/scripts ./scripts
-COPY --from=builder --chown=app:app /app/lib ./lib
-COPY --from=builder --chown=app:app /app/tsconfig.json ./tsconfig.json
-COPY --from=builder --chown=app:app /app/package.json ./package.json
+# Pre-bundled sync scripts — single .cjs files, no runtime tsx needed.
+COPY --from=builder --chown=app:app /app/dist/scripts ./dist/scripts
 
 # Seed data — checked into the repo. The scheduled `npm run sync` task
 # overwrites these files in place at runtime.

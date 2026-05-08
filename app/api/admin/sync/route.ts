@@ -28,11 +28,11 @@ export async function POST(req: Request) {
   }
   inflight = true;
 
-  const script = kind === "live" ? "scripts/check-live.ts" : "scripts/sync.ts";
-  // Build the path at runtime so Turbopack doesn't try to resolve cli.mjs
-  // as a build-time module dependency.
-  const tsxBin = ["node_modules", "tsx", "dist", "cli.mjs"].join("/");
-  const child = spawn("node", [tsxBin, script], {
+  const script =
+    kind === "live"
+      ? ["dist", "scripts", "check-live.cjs"].join("/")
+      : ["dist", "scripts", "sync.cjs"].join("/");
+  const child = spawn("node", [script], {
     detached: true,
     stdio: "ignore",
     env: { ...process.env, SYNC_TRIGGER: "manual" },
