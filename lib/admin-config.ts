@@ -48,6 +48,13 @@ export type AdminConfig = {
   socialLinks: SocialLink[];
   about: { title: string; body: string } | null;
   twitterTimeline: { handle: string; enabled: boolean } | null;
+  pubsub: {
+    channelId: string | null;
+    active: boolean;
+    leaseExpiresAt: string | null;
+    lastNotifiedAt: string | null;
+    secret: string | null;
+  };
 };
 
 const DEFAULT: AdminConfig = {
@@ -69,6 +76,13 @@ const DEFAULT: AdminConfig = {
   ],
   about: null,
   twitterTimeline: { handle: "selcukpekoz", enabled: true },
+  pubsub: {
+    channelId: null,
+    active: false,
+    leaseExpiresAt: null,
+    lastNotifiedAt: null,
+    secret: null,
+  },
 };
 
 const PATH = join(process.cwd(), "data", "admin-config.json");
@@ -99,6 +113,7 @@ function readFile(): AdminConfig {
         : DEFAULT.socialLinks,
       about: raw.about ?? DEFAULT.about,
       twitterTimeline: raw.twitterTimeline ?? DEFAULT.twitterTimeline,
+      pubsub: raw.pubsub ?? DEFAULT.pubsub,
     };
     cache = { mtimeMs, data: merged };
     return merged;

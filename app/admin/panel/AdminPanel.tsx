@@ -12,6 +12,7 @@ import type {
 } from "@/lib/admin-config";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PreviewPane } from "@/components/PreviewPane";
+import { BannerView } from "@/components/BannerView";
 
 type EventWithLabel = ManualEvent & { dateLabel: string };
 type Tab = "events" | "content" | "system";
@@ -980,6 +981,7 @@ function ContentTab({
   return (
     <div className="space-y-10">
       <BannerEditor config={config} busy={busy} onSave={patch} msg={msg} />
+      <PubSubManager config={config} catalog={catalog} />
       <SocialLinksEditor config={config} busy={busy} onSave={patch} />
       <TwitterEditor config={config} busy={busy} onSave={patch} />
       <AboutEditor config={config} busy={busy} onSave={patch} />
@@ -1008,6 +1010,137 @@ function ContentTab({
         </div>
       )}
     </div>
+  );
+}
+
+function PubSubManager({
+  config,
+  catalog,
+}: {
+  config: AdminConfig;
+  catalog: StreamLite[];
+}) {
+  // Try to auto-fill the channel id from any synced stream's URL — every
+  // stream entry came from the same channel anyway.
+  const detected = catalog
+    .map((s) => s.id)
+    .find((id) => /^UC/.test(id))
+    ?.match(/^UC[a-zA-Z0-9_-]{22}$/)?.[0];
+  const fromConfig = config.pubsub.channelId;
+  const [channelId, setChannelId] = useState(
+    fromConfig ?? detected ?? "UCUMvm0XpXaTfICuGMWegUqQ",
+  );
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const sub = config.pubsub;
+  const leaseExpired = sub.leaseExpiresAt
+    ? new Date(sub.leaseExpiresAt).getTime() < Date.now()
+    : false;
+
+  async function call(action: "subscribe" | "unsubscribe") {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/admin/pubsub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, channelId }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg(j.error ?? "İşlem başarısız");
+        return;
+      }
+      if (action === "subscribe") {
+        setMsg(
+          "Abonelik isteği gönderildi. Google birkaç saniye içinde sunucumuzu doğrulayacak.",
+        );
+      } else {
+        setMsg("Abonelik kapatıldı.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section>
+      <SectionHeader title="YouTube anlık bildirimi (PubSubHubbub)" />
+      <p className="mb-3 text-[12px] text-muted leading-relaxed">
+        Bu özellik açıkken Selçuk yeni bir yayın yüklediği anda YouTube
+        sunucumuza haber verir. Saatlik / 15-dakikalık sync beklemek zorunda
+        kalmazsın — yeni yayın saniyeler içinde görünür. Lease 5 günde bir
+        Google tarafından yenilenmek istenir; cron daily renew eder.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[12px] font-medium text-muted">Kanal ID</span>
+          <input
+            value={channelId}
+            onChange={(e) => setChannelId(e.target.value.trim())}
+            spellCheck={false}
+            autoComplete="off"
+            placeholder="UCxxxxxxxxxxxxxxxxxxxxxx"
+            className={inputCls}
+          />
+        </label>
+        <div className="flex gap-2">
+          {sub.active ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => call("unsubscribe")}
+              className="border border-hair text-[13px] px-4 py-2 rounded-[2px] hover:border-text disabled:opacity-50"
+            >
+              Aboneliği kapat
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={busy || !channelId.startsWith("UC")}
+              onClick={() => call("subscribe")}
+              className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+            >
+              {sub.channelId ? "Aboneliği yenile" : "Abone ol"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2 text-[12px]">
+        <div className="border border-hair rounded-[2px] px-3 py-2">
+          <div className="text-faint mb-1">Durum</div>
+          <div className="font-medium">
+            {sub.active && !leaseExpired ? (
+              <span className="text-text">● Aktif</span>
+            ) : sub.channelId ? (
+              <span className="text-muted">○ Doğrulama bekleniyor</span>
+            ) : (
+              <span className="text-muted">○ Pasif</span>
+            )}
+          </div>
+        </div>
+        <div className="border border-hair rounded-[2px] px-3 py-2">
+          <div className="text-faint mb-1">Lease bitiyor</div>
+          <div>
+            {sub.leaseExpiresAt
+              ? new Date(sub.leaseExpiresAt).toLocaleString("tr-TR")
+              : "—"}
+          </div>
+        </div>
+        <div className="border border-hair rounded-[2px] px-3 py-2">
+          <div className="text-faint mb-1">Son bildirim</div>
+          <div>
+            {sub.lastNotifiedAt
+              ? new Date(sub.lastNotifiedAt).toLocaleString("tr-TR")
+              : "—"}
+          </div>
+        </div>
+      </div>
+      {msg && <p className="mt-2 text-[12px] text-muted">{msg}</p>}
+    </section>
   );
 }
 
@@ -1316,47 +1449,63 @@ function BannerEditor({
 }) {
   const [message, setMessage] = useState(config.banner?.message ?? "");
   const [tone, setTone] = useState<BannerTone>(config.banner?.tone ?? "info");
+  const dirty =
+    message !== (config.banner?.message ?? "") ||
+    tone !== (config.banner?.tone ?? "info");
 
   return (
     <section>
       <SectionHeader title="Site banner" />
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-start">
-        <div className="flex flex-col gap-2">
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Cuma akşamı özel maraton 21:00'de!"
-            className={inputCls}
-          />
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] text-muted">Ton:</span>
-            {(["info", "warning", "celebration"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTone(t)}
-                className={
-                  "border text-[12px] px-2.5 py-1 rounded-[2px] " +
-                  (tone === t
-                    ? "bg-ink text-bg border-ink"
-                    : "border-hair text-text hover:border-text")
-                }
-              >
-                {t === "info" ? "Bilgi" : t === "warning" ? "Uyarı" : "Kutlama"}
-              </button>
-            ))}
-          </div>
+      <div className="space-y-3">
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Cuma akşamı özel maraton 21:00'de!"
+          className={inputCls}
+        />
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] text-muted">Ton:</span>
+          {(["info", "warning", "celebration"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTone(t)}
+              className={
+                "border text-[12px] px-2.5 py-1 rounded-[2px] " +
+                (tone === t
+                  ? "bg-ink text-bg border-ink"
+                  : "border-hair text-text hover:border-text")
+              }
+            >
+              {t === "info" ? "Bilgi" : t === "warning" ? "Uyarı" : "Kutlama"}
+            </button>
+          ))}
         </div>
-        <div className="flex gap-2">
+
+        {message && (
+          <div>
+            <div
+              className="text-[11px] text-muted mb-1"
+              style={{ letterSpacing: "0.04em" }}
+            >
+              Önizleme {dirty && "(kaydedilmedi)"}
+            </div>
+            <div className="rounded-[2px] overflow-hidden border border-hair">
+              <BannerView message={message} tone={tone} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
           <button
             type="button"
-            disabled={busy}
+            disabled={busy || !message.trim()}
             onClick={() =>
               onSave({ banner: message ? { message, tone } : null })
             }
             className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
           >
-            Kaydet
+            {dirty ? "Banner'ı yayınla" : "Kaydet"}
           </button>
           {config.banner && (
             <button
@@ -1372,15 +1521,14 @@ function BannerEditor({
             </button>
           )}
         </div>
+        {msg && <p className="text-[12px] text-muted">{msg}</p>}
+        {config.banner && !dirty && (
+          <p className="text-[12px] text-faint">
+            Yayında —{" "}
+            {new Date(config.banner.updatedAt).toLocaleString("tr-TR")}
+          </p>
+        )}
       </div>
-      {msg && (
-        <p className="mt-2 font-mono text-[11px] text-muted">{msg}</p>
-      )}
-      {config.banner && (
-        <p className="mt-2 text-[12px] text-faint">
-          Yayında — {new Date(config.banner.updatedAt).toLocaleString("tr-TR")}
-        </p>
-      )}
     </section>
   );
 }
