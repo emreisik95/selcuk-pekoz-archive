@@ -32,21 +32,14 @@ export function CalendarActions() {
     }
   }, [feedUrl, showToast]);
 
-  const openGoogle = useCallback(async () => {
-    // Google Calendar's "subscribe by URL" is a manual paste flow — open the
-    // settings page in a new tab and copy the URL so the user can paste it.
-    try {
-      await navigator.clipboard.writeText(feedUrl);
-      showToast("Bağlantı kopyalandı. Açılan sekmeye yapıştır.");
-    } catch {
-      /* ignore */
-    }
-    window.open(
-      "https://calendar.google.com/calendar/u/0/r/settings/addbyurl",
-      "_blank",
-      "noopener,noreferrer",
-    );
-  }, [feedUrl, showToast]);
+  const openGoogle = useCallback(() => {
+    // ?cid=<URL-encoded feed> opens Google Calendar with a one-click
+    // "Bu takvimi ekle?" prompt — no manual pasting.
+    const url = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(
+      feedUrl,
+    )}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [feedUrl]);
 
   return (
     <>
