@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import {
   getLiveStreams,
   getPastStreams,
@@ -70,6 +69,7 @@ function buildEvent(
   s: Stream,
   channelTitle: string,
   domain: string,
+  stamp: string,
 ): string[] {
   const url = `https://youtube.com/watch?v=${s.id}`;
   const startISO =
@@ -87,24 +87,25 @@ function buildEvent(
   const liveTag = s.kind === "live" ? "● CANLI · " : "";
   const summary = liveTag + s.title;
 
-  // Keep the description short — Google rejects feeds with overly long
-  // event bodies. Strip any leading boilerplate and clamp to MAX_DESC_LEN.
   let desc = (s.description ?? "").replace(/\r/g, "").trim();
   if (desc.length > MAX_DESC_LEN) {
     desc = desc.slice(0, MAX_DESC_LEN).trimEnd() + "…";
   }
-  // Append the YouTube link as the last line so it's clickable in clients
-  // that linkify URLs in DESCRIPTION.
   desc = (desc ? desc + "\n\n" : "") + `${channelTitle} · YouTube\n${url}`;
 
   const status = s.kind === "upcoming" ? "TENTATIVE" : "CONFIRMED";
+  const created = dt(startISO);
 
   return [
     "BEGIN:VEVENT",
     foldLine(`UID:${s.id}@${domain}`),
-    `DTSTAMP:${dt(new Date())}`,
+    `DTSTAMP:${stamp}`,
     `DTSTART:${dtStart}`,
     `DTEND:${dtEnd}`,
+    `CREATED:${created}`,
+    `LAST-MODIFIED:${stamp}`,
+    "SEQUENCE:0",
+    "CLASS:PUBLIC",
     foldLine(`SUMMARY:${escapeICS(summary)}`),
     foldLine(`DESCRIPTION:${escapeICS(desc)}`),
     foldLine(`URL:${url}`),
@@ -129,14 +130,16 @@ export async function GET() {
   );
   const events = [...upcoming, ...live, ...recentPast];
 
-  // No METHOD:PUBLISH — Google treats those feeds as proposed-event
-  // imports, not as subscriptions. Plain VCALENDAR with VEVENTs is the
-  // recommended subscribe shape.
+  // METHOD:PUBLISH is what well-known feeds (Google holidays,
+  // officeholidays.com) ship — leaving it out tripped Google's "URL not
+  // valid" gate.
+  const stamp = dt(new Date());
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     foldLine(`PRODID:-//${domain}//Selcuk Pekoz Archive//TR`),
     "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
     foldLine(`X-WR-CALNAME:${escapeICS(calName)}`),
     "X-WR-TIMEZONE:Europe/Istanbul",
     foldLine(
@@ -149,18 +152,22 @@ export async function GET() {
     "X-PUBLISHED-TTL:PT1H",
   ];
   for (const s of events) {
-    lines.push(...buildEvent(s, channelTitle, domain));
+    lines.push(...buildEvent(s, channelTitle, domain, stamp));
   }
   lines.push("END:VCALENDAR");
 
   const body = lines.join("\r\n") + "\r\n";
 
-  return new NextResponse(body, {
+  // Build a vanilla Response so we don't inherit Next.js's RSC `Vary` keys
+  // (rsc, next-router-state-tree, …). Some fetchers cache under those
+  // and can return HTML to ICS clients on subsequent hits.
+  return new Response(body, {
     status: 200,
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="selcuk-pekoz.ics"',
       "Cache-Control": "public, max-age=300, s-maxage=300",
+      Vary: "Accept-Encoding",
     },
   });
 }

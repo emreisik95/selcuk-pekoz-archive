@@ -84,7 +84,7 @@ export function CalendarActions() {
             </p>
             <div className="space-y-2.5">
               <a
-                href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(feedUrl)}`}
+                href={`https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-between gap-3 border border-hair rounded-[2px] px-4 py-3 hover:border-text"
