@@ -1,7 +1,10 @@
-const DISCORD_INVITE = "https://discord.gg/UgcedxJjHK";
-const YOUTUBE_CHANNEL = "https://www.youtube.com/@SelçukPeköz";
+import { getAdminConfig } from "@/lib/admin-config";
+import { SocialIcon, platformLabel } from "./SocialIcon";
 
 export function Footer() {
+  const cfg = getAdminConfig();
+  const links = cfg.socialLinks;
+
   return (
     <footer className="mt-auto border-t border-hair">
       <div
@@ -9,23 +12,20 @@ export function Footer() {
         style={{ letterSpacing: "0.04em" }}
       >
         <span>Resmi olmayan fan projesi</span>
-        <div className="flex flex-wrap items-center gap-3 md:gap-5">
-          <a
-            href={YOUTUBE_CHANNEL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-text"
-          >
-            YouTube ↗
-          </a>
-          <a
-            href={DISCORD_INVITE}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-text"
-          >
-            Discord ↗
-          </a>
+        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+          {links.map((l) => (
+            <a
+              key={l.platform + l.url}
+              href={l.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-text"
+              aria-label={l.label || platformLabel(l.platform)}
+            >
+              <SocialIcon platform={l.platform} />
+              <span>{l.label || platformLabel(l.platform)}</span>
+            </a>
+          ))}
           <span aria-hidden className="hidden md:inline">·</span>
           <span>Veri · yt-dlp</span>
         </div>

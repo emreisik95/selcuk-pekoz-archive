@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ManualEvent } from "@/lib/types";
 import type { SyncLogEntry } from "@/lib/sync-log";
-import type { AdminConfig, BannerTone } from "@/lib/admin-config";
+import type {
+  AdminConfig,
+  BannerTone,
+  SocialLink,
+  SocialPlatform,
+} from "@/lib/admin-config";
 
 type EventWithLabel = ManualEvent & { dateLabel: string };
 type Tab = "events" | "content" | "system";
@@ -830,6 +835,9 @@ function ContentTab({
   return (
     <div className="space-y-10">
       <BannerEditor config={config} busy={busy} onSave={patch} msg={msg} />
+      <SocialLinksEditor config={config} busy={busy} onSave={patch} />
+      <TwitterEditor config={config} busy={busy} onSave={patch} />
+      <AboutEditor config={config} busy={busy} onSave={patch} />
       <PinnedEditor
         config={config}
         catalog={catalog}
@@ -845,6 +853,298 @@ function ContentTab({
       <OverrideEditor catalog={catalog} busy={busy} onSave={patch} />
       <WebhookManager config={config} busy={busy} onSave={patch} />
     </div>
+  );
+}
+
+function SocialLinksEditor({
+  config,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [links, setLinks] = useState<SocialLink[]>(config.socialLinks);
+  const [draftPlatform, setDraftPlatform] = useState<SocialPlatform>("youtube");
+  const [draftUrl, setDraftUrl] = useState("");
+  const [draftLabel, setDraftLabel] = useState("");
+
+  function update(idx: number, patch: Partial<SocialLink>) {
+    setLinks((cur) => cur.map((l, i) => (i === idx ? { ...l, ...patch } : l)));
+  }
+  function remove(idx: number) {
+    setLinks((cur) => cur.filter((_, i) => i !== idx));
+  }
+  function move(idx: number, dir: -1 | 1) {
+    setLinks((cur) => {
+      const next = [...cur];
+      const j = idx + dir;
+      if (j < 0 || j >= next.length) return cur;
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return next;
+    });
+  }
+  function add() {
+    if (!draftUrl.startsWith("http")) return;
+    setLinks((cur) => [
+      ...cur,
+      {
+        platform: draftPlatform,
+        url: draftUrl.trim(),
+        label: draftLabel.trim() || undefined,
+      },
+    ]);
+    setDraftUrl("");
+    setDraftLabel("");
+  }
+
+  const PLATFORMS: SocialPlatform[] = [
+    "youtube",
+    "twitter",
+    "discord",
+    "reddit",
+    "instagram",
+    "tiktok",
+    "twitch",
+    "website",
+  ];
+
+  return (
+    <section>
+      <SectionHeader title="Sosyal medya bağlantıları" />
+      <p className="mb-3 text-[12px] text-muted">
+        Footer ve Hakkında sayfasında listelenir. Sırasını yukarı/aşağı oklar
+        ile değiştir.
+      </p>
+      <ul className="space-y-2 mb-4">
+        {links.map((l, i) => (
+          <li
+            key={i}
+            className="flex flex-col md:flex-row md:items-center gap-2 border border-hair rounded-[2px] px-3 py-2"
+          >
+            <select
+              value={l.platform}
+              onChange={(e) =>
+                update(i, { platform: e.target.value as SocialPlatform })
+              }
+              className="bg-transparent text-[12px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+            >
+              {PLATFORMS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+            <input
+              type="url"
+              value={l.url}
+              onChange={(e) => update(i, { url: e.target.value })}
+              className="flex-1 min-w-0 bg-transparent text-[13px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+            />
+            <input
+              type="text"
+              value={l.label ?? ""}
+              onChange={(e) => update(i, { label: e.target.value || undefined })}
+              placeholder="Görünen ad (ops)"
+              className="md:w-40 bg-transparent text-[13px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+            />
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => move(i, -1)}
+                aria-label="Yukarı taşı"
+                disabled={i === 0}
+                className="px-2 py-1.5 text-[12px] text-muted hover:text-text disabled:opacity-30"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                onClick={() => move(i, 1)}
+                aria-label="Aşağı taşı"
+                disabled={i === links.length - 1}
+                className="px-2 py-1.5 text-[12px] text-muted hover:text-text disabled:opacity-30"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                aria-label="Sil"
+                className="px-2 py-1.5 text-[12px] text-muted hover:text-red"
+              >
+                Sil
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex flex-col md:flex-row md:items-center gap-2 border border-dashed border-hair rounded-[2px] px-3 py-2 mb-4">
+        <select
+          value={draftPlatform}
+          onChange={(e) => setDraftPlatform(e.target.value as SocialPlatform)}
+          className="bg-transparent text-[12px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+        >
+          {PLATFORMS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <input
+          type="url"
+          value={draftUrl}
+          onChange={(e) => setDraftUrl(e.target.value)}
+          placeholder="https://…"
+          className="flex-1 min-w-0 bg-transparent text-[13px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+        />
+        <input
+          type="text"
+          value={draftLabel}
+          onChange={(e) => setDraftLabel(e.target.value)}
+          placeholder="Görünen ad (ops)"
+          className="md:w-40 bg-transparent text-[13px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="border border-hair text-[12px] px-3 py-1.5 rounded-[2px] hover:border-text"
+        >
+          + Ekle
+        </button>
+      </div>
+
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onSave({ socialLinks: links })}
+        className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+      >
+        Kaydet
+      </button>
+    </section>
+  );
+}
+
+function TwitterEditor({
+  config,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [handle, setHandle] = useState(config.twitterTimeline?.handle ?? "");
+  const [enabled, setEnabled] = useState(
+    config.twitterTimeline?.enabled ?? false,
+  );
+  return (
+    <section>
+      <SectionHeader title="Twitter / X widget" />
+      <p className="mb-3 text-[12px] text-muted">
+        Anasayfada Selçuk&apos;un X profil timeline&apos;ı görünür. Twitter
+        zaman zaman embedlere kısıt koyuyor — yüklenemezse sayfada
+        &quot;profili X&apos;te aç&quot; linki gösterilir.
+      </p>
+      <div className="flex flex-col md:flex-row md:items-center gap-3">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+          <span className="text-[13px]">Anasayfada göster</span>
+        </label>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] text-muted">@</span>
+          <input
+            type="text"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value.replace(/^@/, ""))}
+            placeholder="selcukpekoz"
+            spellCheck={false}
+            autoComplete="off"
+            className="bg-transparent text-[14px] outline-none focus:border-text border border-hair rounded-[2px] px-2 py-1.5"
+          />
+        </div>
+        <button
+          type="button"
+          disabled={busy || !handle}
+          onClick={() =>
+            onSave({ twitterTimeline: { handle, enabled } })
+          }
+          className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+        >
+          Kaydet
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function AboutEditor({
+  config,
+  busy,
+  onSave,
+}: {
+  config: AdminConfig;
+  busy: boolean;
+  onSave: (body: object) => Promise<boolean>;
+}) {
+  const [title, setTitle] = useState(config.about?.title ?? "Hakkında");
+  const [body, setBody] = useState(config.about?.body ?? "");
+  return (
+    <section>
+      <SectionHeader title="Hakkında sayfası metni" />
+      <p className="mb-3 text-[12px] text-muted">
+        Boş bırakırsan default metin görünür. Düz metin — paragraf araları için
+        boş satır kullan.
+      </p>
+      <div className="flex flex-col gap-3">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Hakkında"
+          className={inputCls}
+        />
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          rows={6}
+          placeholder="Selçuk hakkında, fan projesinin amacı, vs."
+          className={inputCls + " resize-y"}
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() =>
+              onSave({ about: body.trim() ? { title, body } : null })
+            }
+            className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
+          >
+            Kaydet
+          </button>
+          {config.about && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                setBody("");
+                onSave({ about: null });
+              }}
+              className="border border-hair text-[12px] px-3 py-2 rounded-[2px] hover:border-text"
+            >
+              Default metne dön
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

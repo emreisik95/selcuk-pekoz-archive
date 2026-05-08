@@ -12,6 +12,22 @@ import { join, dirname } from "node:path";
 
 export type BannerTone = "info" | "warning" | "celebration";
 
+export type SocialPlatform =
+  | "youtube"
+  | "twitter"
+  | "discord"
+  | "reddit"
+  | "instagram"
+  | "tiktok"
+  | "twitch"
+  | "website";
+
+export type SocialLink = {
+  platform: SocialPlatform;
+  url: string;
+  label?: string;
+};
+
 export type AdminConfig = {
   banner: {
     message: string;
@@ -29,6 +45,9 @@ export type AdminConfig = {
     }
   >;
   webhookToken: string | null;
+  socialLinks: SocialLink[];
+  about: { title: string; body: string } | null;
+  twitterTimeline: { handle: string; enabled: boolean } | null;
 };
 
 const DEFAULT: AdminConfig = {
@@ -37,6 +56,19 @@ const DEFAULT: AdminConfig = {
   hiddenVideoIds: [],
   overrides: {},
   webhookToken: null,
+  socialLinks: [
+    { platform: "youtube", url: "https://www.youtube.com/@SelçukPeköz" },
+    { platform: "discord", url: "https://discord.gg/UgcedxJjHK" },
+    { platform: "twitter", url: "https://x.com/selcukpekoz" },
+    {
+      platform: "reddit",
+      url: "https://www.reddit.com/r/Nintendo_Turkiye/",
+      label: "r/Nintendo_Turkiye",
+    },
+    { platform: "instagram", url: "https://www.instagram.com/pekozselcuk/" },
+  ],
+  about: null,
+  twitterTimeline: { handle: "selcukpekoz", enabled: true },
 };
 
 const PATH = join(process.cwd(), "data", "admin-config.json");
@@ -62,6 +94,11 @@ function readFile(): AdminConfig {
       overrides: raw.overrides && typeof raw.overrides === "object"
         ? raw.overrides
         : {},
+      socialLinks: Array.isArray(raw.socialLinks)
+        ? raw.socialLinks
+        : DEFAULT.socialLinks,
+      about: raw.about ?? DEFAULT.about,
+      twitterTimeline: raw.twitterTimeline ?? DEFAULT.twitterTimeline,
     };
     cache = { mtimeMs, data: merged };
     return merged;

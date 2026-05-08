@@ -39,6 +39,9 @@ export async function PATCH(req: Request) {
       thumbnailUrl?: string;
     };
     rotateWebhook: boolean;
+    socialLinks: Array<{ platform: string; url: string; label?: string }>;
+    about: { title: string; body: string } | null;
+    twitterTimeline: { handle: string; enabled: boolean } | null;
   }>;
 
   // Banner
@@ -80,6 +83,73 @@ export async function PATCH(req: Request) {
 
   if (b.rotateWebhook) {
     generateWebhookToken();
+  }
+
+  if (b.socialLinks !== undefined) {
+    const VALID_PLATFORMS = new Set([
+      "youtube",
+      "twitter",
+      "discord",
+      "reddit",
+      "instagram",
+      "tiktok",
+      "twitch",
+      "website",
+    ]);
+    const cleaned = b.socialLinks
+      .filter(
+        (l) =>
+          l &&
+          typeof l.url === "string" &&
+          l.url.startsWith("http") &&
+          VALID_PLATFORMS.has(l.platform),
+      )
+      .map((l) => ({
+        platform: l.platform as
+          | "youtube"
+          | "twitter"
+          | "discord"
+          | "reddit"
+          | "instagram"
+          | "tiktok"
+          | "twitch"
+          | "website",
+        url: l.url.trim(),
+        label: l.label?.trim() || undefined,
+      }));
+    patchAdminConfig({ socialLinks: cleaned });
+  }
+
+  if (b.about !== undefined) {
+    if (b.about === null) {
+      patchAdminConfig({ about: null });
+    } else if (b.about.body?.trim()) {
+      patchAdminConfig({
+        about: {
+          title: b.about.title?.trim() || "Hakkında",
+          body: b.about.body.trim(),
+        },
+      });
+    }
+  }
+
+  if (b.twitterTimeline !== undefined) {
+    if (b.twitterTimeline === null) {
+      patchAdminConfig({ twitterTimeline: null });
+    } else {
+      const handle = b.twitterTimeline.handle
+        ?.trim()
+        .replace(/^@/, "")
+        .replace(/[^a-zA-Z0-9_]/g, "");
+      if (handle) {
+        patchAdminConfig({
+          twitterTimeline: {
+            handle,
+            enabled: !!b.twitterTimeline.enabled,
+          },
+        });
+      }
+    }
   }
 
   return NextResponse.json(getAdminConfig());

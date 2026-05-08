@@ -12,6 +12,7 @@ const links = [
   { href: "/arsiv", label: "Arşiv" },
   { href: "/shorts", label: "Shorts" },
   { href: "/istatistikler", label: "İstatistikler" },
+  { href: "/hakkinda", label: "Hakkında" },
 ];
 
 export function Nav() {

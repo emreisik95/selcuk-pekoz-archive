@@ -16,6 +16,7 @@ import { getAdminConfig } from "@/lib/admin-config";
 import { dateTR, relTR, views as fmtViews } from "@/lib/fmt";
 import Link from "next/link";
 import type { Stream } from "@/lib/types";
+import { TwitterTimeline } from "@/components/TwitterTimeline";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -358,6 +359,31 @@ export default function HomePage() {
 
         {/* Past — last 7 days, grid auto-sizes to count */}
         <PastWeekSection past={past} now={now} />
+
+        {/* Twitter timeline */}
+        {cfg.twitterTimeline?.enabled && cfg.twitterTimeline.handle && (
+          <section className="border-t border-hair px-5 md:px-10 pt-6 md:pt-9 pb-9">
+            <div className="flex items-baseline justify-between mb-4">
+              <div
+                className="font-mono text-[10px] md:text-[11px] uppercase text-muted"
+                style={{ letterSpacing: "0.12em" }}
+              >
+                X.com&apos;dan son
+              </div>
+              <a
+                href={`https://x.com/${cfg.twitterTimeline.handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[12px] text-muted hover:text-text"
+              >
+                @{cfg.twitterTimeline.handle} ↗
+              </a>
+            </div>
+            <div className="max-w-[640px]">
+              <TwitterTimeline handle={cfg.twitterTimeline.handle} height={500} />
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </>
