@@ -8,6 +8,7 @@ import { join, dirname } from "node:path";
 import { config as loadEnv } from "dotenv";
 import type { Short, Stream, StreamKind } from "../lib/types";
 import { listManualEvents, updateManualEvent } from "../lib/manual";
+import { appendLog } from "../lib/sync-log";
 
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ path: ".env", quiet: true });
@@ -367,7 +368,31 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("× Sync başarısız:", err.message ?? err);
-  process.exit(1);
-});
+const startedAt = new Date();
+main()
+  .then(() => {
+    const finishedAt = new Date();
+    appendLog({
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      kind: process.env.SYNC_TRIGGER === "manual" ? "manual-trigger" : "full",
+      ok: true,
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      message: "Sync tamamlandı",
+    });
+  })
+  .catch((err) => {
+    const finishedAt = new Date();
+    const errMsg = (err && (err.message ?? String(err))) || "bilinmeyen hata";
+    console.error("× Sync başarısız:", errMsg);
+    appendLog({
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      kind: process.env.SYNC_TRIGGER === "manual" ? "manual-trigger" : "full",
+      ok: false,
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      message: "Sync başarısız",
+      error: errMsg,
+    });
+    process.exit(1);
+  });

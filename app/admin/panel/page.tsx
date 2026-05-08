@@ -4,6 +4,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { isAdmin } from "@/lib/auth";
 import { listManualEvents } from "@/lib/manual";
+import { readLog } from "@/lib/sync-log";
 import { dateTR } from "@/lib/fmt";
 import { AdminPanel } from "./AdminPanel";
 
@@ -15,11 +16,11 @@ export const metadata = {
 export default async function AdminPanelPage() {
   if (!(await isAdmin())) redirect("/admin");
   const events = listManualEvents();
-  // Sort by scheduledAt ascending (upcoming first)
   events.sort(
     (a, b) =>
       new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
+  const syncLog = readLog().slice(0, 20);
 
   return (
     <>
@@ -37,7 +38,7 @@ export default async function AdminPanelPage() {
               className="font-serif text-[26px] md:text-[38px] font-semibold"
               style={{ letterSpacing: "-0.025em" }}
             >
-              Manuel yayınlar
+              Yönetim
             </h1>
             <Link
               href="/takvim"
@@ -53,6 +54,7 @@ export default async function AdminPanelPage() {
             ...e,
             dateLabel: dateLabel(e.scheduledAt),
           }))}
+          initialLog={syncLog}
         />
       </main>
       <Footer />

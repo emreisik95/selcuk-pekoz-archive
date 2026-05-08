@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Stream, StreamKind } from "../lib/types";
+import { appendLog } from "../lib/sync-log";
 
 const STREAMS_PATH = join(process.cwd(), "data", "streams.json");
 
@@ -121,7 +122,31 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error("× check-live başarısız:", err.message ?? err);
-  process.exit(1);
-});
+const startedAt = new Date();
+main()
+  .then(() => {
+    const finishedAt = new Date();
+    appendLog({
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      kind: "live-check",
+      ok: true,
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      message: "Canlı yayın kontrolü tamamlandı",
+    });
+  })
+  .catch((err) => {
+    const finishedAt = new Date();
+    const errMsg = (err && (err.message ?? String(err))) || "bilinmeyen hata";
+    console.error("× check-live başarısız:", errMsg);
+    appendLog({
+      startedAt: startedAt.toISOString(),
+      finishedAt: finishedAt.toISOString(),
+      kind: "live-check",
+      ok: false,
+      durationMs: finishedAt.getTime() - startedAt.getTime(),
+      message: "Canlı yayın kontrolü başarısız",
+      error: errMsg,
+    });
+    process.exit(1);
+  });
