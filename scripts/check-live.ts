@@ -8,6 +8,7 @@ import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type { Stream, StreamKind } from "../lib/types";
 import { appendLog } from "../lib/sync-log";
+import { resolveCookiesPath } from "../lib/cookies";
 
 const STREAMS_PATH = join(process.cwd(), "data", "streams.json");
 
@@ -23,17 +24,13 @@ type YtDlpVideo = {
 
 function ytDlpFetch(id: string): Promise<YtDlpVideo | null> {
   return new Promise((resolve) => {
-    const child = spawn(
-      "yt-dlp",
-      [
-        "-j",
-        "--skip-download",
-        "--no-warnings",
-        "--ignore-errors",
-        `https://www.youtube.com/watch?v=${id}`,
-      ],
-      { stdio: ["ignore", "pipe", "pipe"] },
-    );
+    const args = ["-j", "--skip-download", "--no-warnings", "--ignore-errors"];
+    const cookies = resolveCookiesPath();
+    if (cookies) args.push("--cookies", cookies);
+    args.push(`https://www.youtube.com/watch?v=${id}`);
+    const child = spawn("yt-dlp", args, {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let buf = "";
     child.stdout.on("data", (c) => {
       buf += c.toString("utf8");

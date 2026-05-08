@@ -9,6 +9,7 @@ import { config as loadEnv } from "dotenv";
 import type { Short, Stream, StreamKind } from "../lib/types";
 import { listManualEvents, updateManualEvent } from "../lib/manual";
 import { appendLog } from "../lib/sync-log";
+import { resolveCookiesPath } from "../lib/cookies";
 
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ path: ".env", quiet: true });
@@ -136,8 +137,10 @@ async function ytDlpStream(
       "--ignore-errors",
       "--playlist-end",
       String(limit),
-      url,
     ];
+    const cookies = resolveCookiesPath();
+    if (cookies) args.push("--cookies", cookies);
+    args.push(url);
     const child = spawn("yt-dlp", args, { stdio: ["ignore", "pipe", "pipe"] });
     const entries: YtDlpEntry[] = [];
     let channel: ChannelInfo | undefined;

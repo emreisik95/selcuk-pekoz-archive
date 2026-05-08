@@ -43,8 +43,11 @@ next-env.d.ts
 
 # runtime data — populated by yt-dlp.
 # We track public seed files (streams/shorts/channel) but never the
-# admin-created manual events.
+# admin-created manual events or auth cookies.
 /data/manual.json
+/data/admin-config.json
+/data/sync-log.json
+/data/youtube-cookies.txt
 
 # claude code workspace
 CLAUDE.md
