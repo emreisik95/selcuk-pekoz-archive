@@ -178,10 +178,18 @@ export async function fetchVideos(ids: string[]): Promise<Stream[]> {
       id: batch.join(","),
     });
     for (const v of data.items ?? []) {
-      if (!v.liveStreamingDetails) continue; // skip non-livestream videos
+      if (!v.liveStreamingDetails) continue;
       const live = v.liveStreamingDetails;
       const isLive = !!live.actualStartTime && !live.actualEndTime;
       const isCompleted = !!live.actualEndTime;
+
+      // Streams with a scheduled time in the past but no actual start are
+      // cancelled/ghost — skip them rather than mislabel as "upcoming".
+      if (!isLive && !isCompleted && live.scheduledStartTime) {
+        const schedMs = new Date(live.scheduledStartTime).getTime();
+        if (schedMs + 86_400_000 < Date.now()) continue;
+      }
+
       const kind: StreamKind = isLive
         ? "live"
         : isCompleted
