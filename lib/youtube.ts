@@ -183,9 +183,11 @@ export async function fetchVideos(ids: string[]): Promise<Stream[]> {
       const isLive = !!live.actualStartTime && !live.actualEndTime;
       const isCompleted = !!live.actualEndTime;
 
-      // Streams with a scheduled time in the past but no actual start are
-      // cancelled/ghost — skip them rather than mislabel as "upcoming".
-      if (!isLive && !isCompleted && live.scheduledStartTime) {
+      // Streams without actual start/end times are ghosts if their
+      // scheduled time is missing or already past — skip them rather
+      // than mislabel as "upcoming".
+      if (!isLive && !isCompleted) {
+        if (!live.scheduledStartTime) continue;
         const schedMs = new Date(live.scheduledStartTime).getTime();
         if (schedMs + 86_400_000 < Date.now()) continue;
       }
