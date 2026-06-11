@@ -216,13 +216,10 @@ export async function fetchVideos(ids: string[]): Promise<Stream[]> {
 }
 
 export async function fetchAllStreams(channelId: string): Promise<Stream[]> {
-  // Use uploads playlist instead of search endpoint (search has auth issues
-  // with certain API key configurations).
   // playlistItems costs 1 unit each, videos.list costs 1 unit per 50.
-  // Total: ~5 units per sync — well under 10k/day.
+  // Total: ~24 units per sync — well under 10k/day.
   const playlistId = await getUploadsPlaylistId(channelId);
-  // Up to 4 pages = 200 most recent uploads. More than enough since
-  // Selçuk streams roughly twice a week (~100/year).
-  const ids = await getVideoIdsFromPlaylist(playlistId, 4);
+  // 12 pages = 600 uploads. With ~50% stream ratio, yields ~300 streams.
+  const ids = await getVideoIdsFromPlaylist(playlistId, 12);
   return fetchVideos(ids);
 }
