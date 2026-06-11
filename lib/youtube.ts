@@ -6,8 +6,8 @@ import type { Stream, StreamKind } from "./types";
 const API = "https://www.googleapis.com/youtube/v3";
 
 function key() {
-  const k = process.env.YOUTUBE_API_KEY;
-  if (!k) throw new Error("YOUTUBE_API_KEY env değişkeni tanımlı değil.");
+  const k = process.env.YT_API_KEY || process.env.YOUTUBE_API_KEY;
+  if (!k) throw new Error("YT_API_KEY / YOUTUBE_API_KEY env değişkeni tanımlı değil.");
   return k;
 }
 
