@@ -1,65 +1,50 @@
-// Run with: `npm run check-live`
-// Light-weight job: re-fetches only the streams currently flagged `live`
-// to detect when they end. Cheaper than a full sync, safe to run every
-// few minutes.
-
-import { spawn } from "node:child_process";
 import { writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import type { Stream, StreamKind } from "../lib/types";
+import type { Stream } from "../lib/types";
 import { appendLog } from "../lib/sync-log";
-import { resolveCookiesPath } from "../lib/cookies";
 
 const STREAMS_PATH = join(process.cwd(), "data", "streams.json");
+const API = "https://www.googleapis.com/youtube/v3";
 
-type YtDlpVideo = {
-  id: string;
-  title?: string;
-  live_status?: "is_live" | "is_upcoming" | "was_live" | "not_live" | null;
-  duration?: number | null;
-  view_count?: number | null;
-  concurrent_view_count?: number | null;
-  release_timestamp?: number | null;
-};
-
-function ytDlpFetch(id: string): Promise<YtDlpVideo | null> {
-  return new Promise((resolve) => {
-    const args = ["-j", "--skip-download", "--no-warnings", "--ignore-errors"];
-    const cookies = resolveCookiesPath();
-    if (cookies) args.push("--cookies", cookies);
-    args.push(`https://www.youtube.com/watch?v=${id}`);
-    const child = spawn("yt-dlp", args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let buf = "";
-    child.stdout.on("data", (c) => {
-      buf += c.toString("utf8");
-    });
-    child.on("error", () => resolve(null));
-    child.on("close", () => {
-      const line = buf.split("\n").find((l) => l.trim().startsWith("{"));
-      if (!line) return resolve(null);
-      try {
-        resolve(JSON.parse(line) as YtDlpVideo);
-      } catch {
-        resolve(null);
-      }
-    });
-  });
+function key(): string {
+  return (
+    process.env.YT_API_KEY ||
+    process.env.YOUTUBE_API_KEY ||
+    ""
+  );
 }
 
-function classify(v: YtDlpVideo, prevKind: StreamKind): StreamKind {
-  switch (v.live_status) {
-    case "is_live":
-      return "live";
-    case "is_upcoming":
-      return "upcoming";
-    case "was_live":
-      return "completed";
-    default:
-      // If status missing but stream has finite duration → completed
-      if (v.duration && v.duration > 0) return "completed";
-      return prevKind;
+async function fetchVideoStatus(
+  id: string,
+): Promise<{ isLive: boolean; isCompleted: boolean; concurrentViewers: number | null; viewCount: number | null } | null> {
+  const k = key();
+  if (!k) return null;
+  const url = `${API}/videos?part=liveStreamingDetails,statistics&id=${id}&key=${k}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      items?: Array<{
+        liveStreamingDetails?: {
+          actualStartTime?: string;
+          actualEndTime?: string;
+          concurrentViewers?: string;
+        };
+        statistics?: { viewCount?: string };
+      }>;
+    };
+    const v = data.items?.[0];
+    if (!v) return null;
+    const live = v.liveStreamingDetails;
+    if (!live) return { isLive: false, isCompleted: true, concurrentViewers: null, viewCount: null };
+    return {
+      isLive: !!live.actualStartTime && !live.actualEndTime,
+      isCompleted: !!live.actualEndTime,
+      concurrentViewers: live.concurrentViewers ? Number(live.concurrentViewers) : null,
+      viewCount: v.statistics?.viewCount ? Number(v.statistics.viewCount) : null,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -68,6 +53,12 @@ async function main() {
     console.log("data/streams.json yok, atlandı.");
     return;
   }
+
+  if (!key()) {
+    console.log("YT_API_KEY tanımlı değil, kontrol atlandı.");
+    return;
+  }
+
   const raw = readFileSync(STREAMS_PATH, "utf8");
   const file = JSON.parse(raw) as { streams: Stream[]; syncedAt?: string };
   const live = file.streams.filter((s) => s.kind === "live");
@@ -81,35 +72,25 @@ async function main() {
   let updated = 0;
 
   for (const s of live) {
-    const v = await ytDlpFetch(s.id);
-    if (!v) {
-      console.log(`  ? ${s.id} — yt-dlp veri vermedi`);
+    const status = await fetchVideoStatus(s.id);
+    if (!status) {
+      console.log(`  ? ${s.id} — API veri vermedi`);
       continue;
     }
-    const newKind = classify(v, s.kind);
-    if (newKind !== s.kind) {
-      s.kind = newKind;
-      if (newKind === "completed") {
-        s.actualEndAt = new Date().toISOString();
-        s.durationSec = v.duration ?? s.durationSec ?? null;
-        if (typeof v.view_count === "number") s.viewCount = v.view_count;
-        s.concurrentViewers = null;
-      }
+    if (status.isCompleted || (!status.isLive && s.kind === "live")) {
+      s.kind = "completed";
+      s.actualEndAt = new Date().toISOString();
+      if (status.viewCount != null) s.viewCount = status.viewCount;
+      s.concurrentViewers = null;
       updated++;
-      console.log(`  ✓ ${s.id} → ${newKind}`);
-    } else if (newKind === "live") {
-      // Refresh viewer count even if still live
-      if (typeof v.concurrent_view_count === "number") {
-        s.concurrentViewers = v.concurrent_view_count;
-      }
-      if (typeof v.view_count === "number") s.viewCount = v.view_count;
-      console.log(
-        `  · ${s.id} hala canlı (${v.concurrent_view_count ?? "?"} izleyici)`,
-      );
+      console.log(`  ✓ ${s.id} → completed`);
+    } else if (status.isLive) {
+      if (status.concurrentViewers != null) s.concurrentViewers = status.concurrentViewers;
+      if (status.viewCount != null) s.viewCount = status.viewCount;
+      console.log(`  · ${s.id} hala canlı (${status.concurrentViewers ?? "?"} izleyici)`);
     }
   }
 
-  // Always rewrite — even if just to refresh viewer counts.
   file.syncedAt = new Date().toISOString();
   writeFileSync(STREAMS_PATH, JSON.stringify(file, null, 2));
   console.log(

@@ -27,7 +27,7 @@ export function Footer() {
             </a>
           ))}
           <span aria-hidden className="hidden md:inline">·</span>
-          <span>Veri · yt-dlp</span>
+          <span>Veri · YouTube API</span>
         </div>
       </div>
     </footer>

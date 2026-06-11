@@ -12,7 +12,7 @@ export const metadata = {
 
 const DEFAULT_BODY = `Bu site Selçuk Peköz'ün YouTube canlı yayınlarını arşivleyen, resmi olmayan bir fan projesidir.
 
-Veriler düzenli olarak yt-dlp aracılığıyla YouTube'dan çekilir. Yaklaşan yayınlar takvimde görünür, tamamlanmış yayınlar arşivde, kısa videolar Shorts sekmesinde, ve bütün rakamlar İstatistikler sayfasında.
+Veriler düzenli olarak YouTube Data API aracılığıyla çekilir. Yaklaşan yayınlar takvimde görünür, tamamlanmış yayınlar arşivde, kısa videolar Shorts sekmesinde, ve bütün rakamlar İstatistikler sayfasında.
 
 Resmi sosyal medya bağlantıları aşağıda. Selçuk'a ulaşmak veya kanalını desteklemek istersen YouTube veya Discord en hızlı yol.`;
 
