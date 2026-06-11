@@ -135,7 +135,6 @@ async function ytDlpStream(
       "--skip-download",
       "--no-warnings",
       "--ignore-errors",
-      "--flat-playlist",
       "--extractor-retries",
       "5",
       "--playlist-end",
@@ -275,10 +274,10 @@ async function main() {
       : undefined);
   const streamsUrl = knownChannelId
     ? `https://www.youtube.com/channel/${knownChannelId}/streams`
-    : `https://www.youtube.com/@${handleNoAt}/streams`;
+    : `https://www.youtube.com/@${encodeURI(handleNoAt)}/streams`;
   const shortsUrl = knownChannelId
     ? `https://www.youtube.com/channel/${knownChannelId}/shorts`
-    : `https://www.youtube.com/@${handleNoAt}/shorts`;
+    : `https://www.youtube.com/@${encodeURI(handleNoAt)}/shorts`;
 
   console.log(`→ Yayınlar (live/completed/upcoming) çekiliyor…`);
   console.log(`  ${streamsUrl}  (max ${PLAYLIST_END})`);
