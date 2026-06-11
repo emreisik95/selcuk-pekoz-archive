@@ -19,7 +19,9 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 # yt-dlp needs python; ffmpeg is optional but nice to have for shorts metadata.
-RUN apk add --no-cache python3 yt-dlp tzdata && \
+# Use pip for yt-dlp instead of apk to get the latest version.
+RUN apk add --no-cache python3 py3-pip tzdata && \
+    pip install --break-system-packages --no-cache-dir yt-dlp && \
     addgroup -S app && adduser -S app -G app && \
     mkdir -p /app/data && chown -R app:app /app/data
 

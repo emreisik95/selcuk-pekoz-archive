@@ -135,6 +135,9 @@ async function ytDlpStream(
       "--skip-download",
       "--no-warnings",
       "--ignore-errors",
+      "--flat-playlist",
+      "--extractor-retries",
+      "5",
       "--playlist-end",
       String(limit),
     ];
@@ -182,6 +185,9 @@ async function ytDlpStream(
           new Error(`yt-dlp ${code} hatasıyla çıktı:\n${stderr.slice(0, 800)}`),
         );
         return;
+      }
+      if (stderr.trim()) {
+        process.stderr.write(`  ⚠ yt-dlp stderr: ${stderr.slice(0, 500)}\n`);
       }
       resolve({ entries, channel });
     });
@@ -251,11 +257,28 @@ function entryToShort(e: YtDlpEntry): Short | null {
 }
 
 async function main() {
-  // Confirm yt-dlp exists with a quick check
-  // (spawn will throw a clearer error if missing)
+  // Log yt-dlp version for debugging
+  try {
+    const v = spawn("yt-dlp", ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
+    let vout = "";
+    v.stdout.on("data", (c) => (vout += c.toString()));
+    v.on("close", () => console.log(`  yt-dlp sürüm: ${vout.trim()}`));
+  } catch { /* ignore */ }
+
   const handleNoAt = HANDLE.replace(/^@/, "");
-  const streamsUrl = `https://www.youtube.com/@${handleNoAt}/streams`;
-  const shortsUrl = `https://www.youtube.com/@${handleNoAt}/shorts`;
+
+  // Prefer channel ID URL (avoids encoding issues with special chars in handle).
+  const knownChannelId =
+    process.env.YOUTUBE_CHANNEL_ID ||
+    (existsSync(CHANNEL_OUT)
+      ? (JSON.parse(readFileSync(CHANNEL_OUT, "utf8")) as { id?: string }).id
+      : undefined);
+  const streamsUrl = knownChannelId
+    ? `https://www.youtube.com/channel/${knownChannelId}/streams`
+    : `https://www.youtube.com/@${handleNoAt}/streams`;
+  const shortsUrl = knownChannelId
+    ? `https://www.youtube.com/channel/${knownChannelId}/shorts`
+    : `https://www.youtube.com/@${handleNoAt}/shorts`;
 
   console.log(`→ Yayınlar (live/completed/upcoming) çekiliyor…`);
   console.log(`  ${streamsUrl}  (max ${PLAYLIST_END})`);
