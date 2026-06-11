@@ -41,52 +41,48 @@ export async function resolveChannelId(handle: string): Promise<{
   return { id: it.id, title: it.snippet.title };
 }
 
-type PlaylistItemsResp = {
+type SearchListResp = {
   items?: Array<{
+    id: { videoId: string };
     snippet: {
-      resourceId: { videoId: string };
+      title: string;
+      description: string;
       publishedAt: string;
+      thumbnails?: {
+        default?: { url: string };
+        medium?: { url: string };
+        high?: { url: string };
+        standard?: { url: string };
+        maxres?: { url: string };
+      };
     };
   }>;
   nextPageToken?: string;
 };
 
-type ChannelsListResp2 = {
-  items?: Array<{
-    contentDetails: { relatedPlaylists: { uploads: string } };
-  }>;
-};
-
-async function getUploadsPlaylistId(channelId: string): Promise<string> {
-  const data = await ytGet<ChannelsListResp2>("/channels", {
-    part: "contentDetails",
-    id: channelId,
-  });
-  const playlistId = data.items?.[0]?.contentDetails?.relatedPlaylists?.uploads;
-  if (!playlistId) throw new Error("Uploads playlist bulunamadı");
-  return playlistId;
-}
-
-async function getVideoIdsFromPlaylist(
-  playlistId: string,
+async function searchChannel(
+  channelId: string,
+  eventType: "upcoming" | "live" | "completed",
   maxPages = 4,
 ): Promise<string[]> {
   const ids: string[] = [];
   let pageToken: string | undefined;
   for (let i = 0; i < maxPages; i++) {
     const params: Record<string, string> = {
-      part: "snippet",
-      playlistId,
+      part: "id",
+      channelId,
+      type: "video",
+      eventType,
+      order: "date",
       maxResults: "50",
     };
     if (pageToken) params.pageToken = pageToken;
-    const data = await ytGet<PlaylistItemsResp & { nextPageToken?: string }>(
-      "/playlistItems",
+    const data = await ytGet<SearchListResp & { nextPageToken?: string }>(
+      "/search",
       params,
     );
     for (const it of data.items ?? []) {
-      const videoId = it.snippet?.resourceId?.videoId;
-      if (videoId) ids.push(videoId);
+      if (it.id?.videoId) ids.push(it.id.videoId);
     }
     if (!data.nextPageToken) break;
     pageToken = data.nextPageToken;
@@ -178,8 +174,7 @@ export async function fetchVideos(ids: string[]): Promise<Stream[]> {
       id: batch.join(","),
     });
     for (const v of data.items ?? []) {
-      if (!v.liveStreamingDetails) continue; // skip non-livestream videos
-      const live = v.liveStreamingDetails;
+      const live = v.liveStreamingDetails ?? {};
       const isLive = !!live.actualStartTime && !live.actualEndTime;
       const isCompleted = !!live.actualEndTime;
       const kind: StreamKind = isLive
@@ -216,13 +211,13 @@ export async function fetchVideos(ids: string[]): Promise<Stream[]> {
 }
 
 export async function fetchAllStreams(channelId: string): Promise<Stream[]> {
-  // Use uploads playlist instead of search endpoint (search has auth issues
-  // with certain API key configurations).
-  // playlistItems costs 1 unit each, videos.list costs 1 unit per 50.
-  // Total: ~5 units per sync — well under 10k/day.
-  const playlistId = await getUploadsPlaylistId(channelId);
-  // Up to 4 pages = 200 most recent uploads. More than enough since
-  // Selçuk streams roughly twice a week (~100/year).
-  const ids = await getVideoIdsFromPlaylist(playlistId, 4);
-  return fetchVideos(ids);
+  // 3 search calls × 100 units = 300 units per sync. Fits easily under 10k/day.
+  const [upcomingIds, liveIds, completedIds] = await Promise.all([
+    searchChannel(channelId, "upcoming", 1),
+    searchChannel(channelId, "live", 1),
+    // Up to 4 pages = 200 most recent past streams.
+    searchChannel(channelId, "completed", 4),
+  ]);
+  const allIds = [...new Set([...upcomingIds, ...liveIds, ...completedIds])];
+  return fetchVideos(allIds);
 }
