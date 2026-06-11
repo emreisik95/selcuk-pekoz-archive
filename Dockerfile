@@ -18,10 +18,8 @@ RUN npm run build && npm run build:scripts
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# yt-dlp needs python; ffmpeg is optional but nice to have for shorts metadata.
-# Use pip for yt-dlp instead of apk to get the latest version.
-RUN apk add --no-cache python3 py3-pip tzdata && \
-    pip install --break-system-packages --no-cache-dir yt-dlp && \
+# YouTube Data API v3 — no yt-dlp or python needed.
+RUN apk add --no-cache tzdata && \
     addgroup -S app && adduser -S app -G app && \
     mkdir -p /app/data && chown -R app:app /app/data
 

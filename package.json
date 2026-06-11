@@ -21,6 +21,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",
+    "esbuild": "^0.25.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5"
