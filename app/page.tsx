@@ -338,6 +338,12 @@ export default function HomePage() {
             </div>
             <Link
               href="/takvim"
+              className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-text md:hidden"
+            >
+              Takvim <ArrowIcon />
+            </Link>
+            <Link
+              href="/takvim"
               className="hidden md:inline-flex items-center gap-1 text-[12px] text-muted hover:text-text"
             >
               Takvimde gör <ArrowIcon />
