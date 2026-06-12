@@ -137,7 +137,7 @@ function PinnedSection({ stream, now }: { stream: Stream; now: Date }) {
   );
 }
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 export default function HomePage() {
   const upcoming = getUpcomingStreams();
