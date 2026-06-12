@@ -4,6 +4,7 @@ import { MCard } from "@/components/MCard";
 import { Thumb } from "@/components/Thumb";
 import { Countdown } from "@/components/Countdown";
 import { BellIcon, ExtIcon, ArrowIcon } from "@/components/Icon";
+import { CalendarButton } from "@/components/CalendarButton";
 import {
   getAllStreams,
   getNextStream,
@@ -306,14 +307,16 @@ export default function HomePage() {
                   )}
                   <ExtIcon />
                 </a>
-                {!isLive && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center border border-hair bg-transparent text-[13px] text-text font-medium px-4 md:px-[18px] py-3 md:py-[10px] rounded-[2px] hover:bg-hair/40"
-                  >
-                    Takvime ekle
-                  </button>
-                )}
+                <CalendarButton
+                  stream={{
+                    id: next.id,
+                    title: next.title,
+                    scheduledAt: next.scheduledAt,
+                    actualStartAt: next.actualStartAt ?? null,
+                    actualEndAt: next.actualEndAt ?? null,
+                    durationSec: next.durationSec ?? null,
+                  }}
+                />
               </div>
             </div>
             <div className="hidden md:block aspect-video rounded-[2px] overflow-hidden bg-black">
