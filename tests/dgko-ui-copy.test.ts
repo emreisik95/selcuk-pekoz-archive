@@ -98,12 +98,15 @@ test("the corridor has travelling clouds, grass and mushrooms without global blo
 test("the floor gains irregular travelling dirt path sections", () => {
   assert.match(experienceSource, /makeDirtPath/);
   assert.match(experienceSource, /dirtPathSegments/);
+  assert.match(experienceSource, /wrapBuffer/);
+  assert.match(experienceSource, /makeDirtPath\(index\)[\s\S]*24/);
 });
 
 test("wall videos and readable chapter copy are authored as 3D scene elements", () => {
   assert.match(experienceSource, /createCrtMaterial/);
   assert.match(experienceSource, /new THREE\.CanvasTexture/);
   assert.match(experienceSource, /chapterBillboard/);
+  assert.match(experienceSource, /isCompact \? 0\.66 : 1/);
   assert.match(experienceSource, /new THREE\.Fog\(0x7163a3, 30, 150\)/);
   assert.match(experienceSource, /isCompact \? 150 : 190/);
 });

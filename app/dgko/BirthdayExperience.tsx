@@ -69,6 +69,11 @@ function wrapDepth(value: number) {
   return ((((value - CORRIDOR_NEAR_Z) % ROOM_DEPTH) + ROOM_DEPTH) % ROOM_DEPTH) - ROOM_DEPTH + CORRIDOR_NEAR_Z;
 }
 
+function wrapDepthWithBuffer(value: number, wrapBuffer: number) {
+  const bufferedNearZ = CORRIDOR_NEAR_Z + wrapBuffer;
+  return ((((value - bufferedNearZ) % ROOM_DEPTH) + ROOM_DEPTH) % ROOM_DEPTH) - ROOM_DEPTH + bufferedNearZ;
+}
+
 function smoothstep(value: number) {
   const t = Math.min(1, Math.max(0, value));
   return t * t * (3 - 2 * t);
@@ -690,7 +695,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
   chapterFace.position.z = 0.12;
   chapterBillboard.add(chapterFace);
   chapterBillboard.position.set(0, 0.4, -8);
-  chapterBillboard.scale.setScalar(isCompact ? 0.57 : 1);
+  chapterBillboard.scale.setScalar(isCompact ? 0.66 : 1);
   scene.add(chapterBillboard);
   let renderedChapterKey = "";
 
@@ -761,7 +766,13 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     return anchor;
   };
   const corridorNature = new THREE.Group();
-  const travellingNature: Array<{ anchor: THREE.Group; baseY: number; baseZ: number; bob: number }> = [];
+  const travellingNature: Array<{
+    anchor: THREE.Group;
+    baseY: number;
+    baseZ: number;
+    bob: number;
+    wrapBuffer: number;
+  }> = [];
   scene.add(corridorNature);
   const placeTrackModel = (
     source: THREE.Object3D,
@@ -769,9 +780,10 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     rotation: THREE.Euler,
     scale: number,
     bob = 0,
+    wrapBuffer = 0,
   ) => {
     const anchor = placeModel(corridorNature, source, position, rotation, scale);
-    travellingNature.push({ anchor, baseY: position.y, baseZ: position.z, bob });
+    travellingNature.push({ anchor, baseY: position.y, baseZ: position.z, bob, wrapBuffer });
     return anchor;
   };
   const dirtPathSegments: THREE.Group[] = [];
@@ -781,6 +793,8 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
       new THREE.Vector3(0, -5.045, -64 - index * 54),
       new THREE.Euler(),
       1,
+      0,
+      24,
     );
     dirtPathSegments.push(path);
   }
@@ -1078,11 +1092,11 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     chapterBillboard.position.z = -11.5 + entry * 4.2;
     chapterBillboard.rotation.y = (1 - entry) * -0.11 + Math.sin(elapsed * 0.22) * 0.006;
     chapterBillboard.rotation.x = (1 - entry) * 0.045;
-    const billboardScale = (isCompact ? 0.57 : 1) * (0.86 + entry * 0.14);
+    const billboardScale = (isCompact ? 0.66 : 1) * (0.86 + entry * 0.14);
     chapterBillboard.scale.setScalar(billboardScale);
 
-    travellingNature.forEach(({ anchor, baseY, baseZ, bob }, index) => {
-      anchor.position.z = wrapDepth(baseZ + travel);
+    travellingNature.forEach(({ anchor, baseY, baseZ, bob, wrapBuffer }, index) => {
+      anchor.position.z = wrapDepthWithBuffer(baseZ + travel, wrapBuffer);
       anchor.position.y = baseY + Math.sin(elapsed * 0.32 + index * 0.91) * bob;
     });
 
