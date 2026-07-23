@@ -459,7 +459,28 @@ function drawWrappedLine(
   lines.slice(0, 2).forEach((value, index) => context.fillText(value, centerX, startY + index * lineHeight));
 }
 
-function drawChapterTexture(context: CanvasRenderingContext2D, copy: ChapterCopy) {
+function fitCanvasFont(
+  context: CanvasRenderingContext2D,
+  lines: string[],
+  preferredSize: number,
+  minimumSize: number,
+  maxWidth: number,
+  weight = 900,
+) {
+  let size = preferredSize;
+  while (size > minimumSize) {
+    context.font = `${weight} ${size}px system-ui, sans-serif`;
+    if (lines.every((line) => context.measureText(line).width <= maxWidth)) break;
+    size -= 4;
+  }
+  return size;
+}
+
+function drawChapterTexture(
+  context: CanvasRenderingContext2D,
+  copy: ChapterCopy,
+  isCompact: boolean,
+) {
   const width = context.canvas.width;
   const height = context.canvas.height;
   context.clearRect(0, 0, width, height);
@@ -474,29 +495,54 @@ function drawChapterTexture(context: CanvasRenderingContext2D, copy: ChapterCopy
   context.strokeStyle = "rgba(255, 218, 172, 0.92)";
   context.lineWidth = 14;
   context.stroke();
+  context.beginPath();
+  context.roundRect(62, 62, width - 124, height - 124, 75);
+  context.strokeStyle = "rgba(255, 248, 234, 0.16)";
+  context.lineWidth = 4;
+  context.stroke();
 
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#ffd9a6";
-  context.font = "800 58px system-ui, sans-serif";
-  context.letterSpacing = "5px";
-  context.fillText(copy.eyebrow, width / 2, 160);
+  const eyebrowSize = isCompact ? 76 : 58;
+  context.font = `850 ${eyebrowSize}px system-ui, sans-serif`;
+  context.letterSpacing = isCompact ? "6px" : "5px";
+  context.fillText(copy.eyebrow, width / 2, isCompact ? 145 : 160);
   context.letterSpacing = "0px";
 
   const titleLines = copy.title.split("\n");
-  const longestTitle = Math.max(...titleLines.map((line) => line.length));
-  const titleSize = longestTitle > 14 ? 142 : longestTitle > 9 ? 176 : 214;
-  const titleLineHeight = titleSize * 1.14;
-  const titleStart = titleLines.length > 1 ? 365 : 475;
+  const titleSize = fitCanvasFont(
+    context,
+    titleLines,
+    isCompact ? 310 : 214,
+    isCompact ? 168 : 132,
+    isCompact ? width - 270 : width - 380,
+  );
+  const titleLineHeight = titleSize * 1.12;
+  const titleStart = titleLines.length > 1 ? (isCompact ? 330 : 365) : 475;
   context.fillStyle = "#fff8ea";
   context.font = `900 ${titleSize}px system-ui, sans-serif`;
+  context.shadowColor = "rgba(35, 24, 63, 0.34)";
+  context.shadowBlur = isCompact ? 14 : 9;
+  context.shadowOffsetY = isCompact ? 8 : 5;
   titleLines.forEach((line, index) => {
     context.fillText(line, width / 2, titleStart + index * titleLineHeight);
   });
+  context.shadowColor = "transparent";
+  context.shadowBlur = 0;
+  context.shadowOffsetY = 0;
 
-  context.fillStyle = "rgba(255, 248, 234, 0.9)";
-  context.font = "700 48px system-ui, sans-serif";
-  drawWrappedLine(context, copy.note, width / 2, 875, width - 340, 62);
+  context.fillStyle = "rgba(255, 248, 234, 0.96)";
+  const noteSize = isCompact ? 66 : 48;
+  context.font = `750 ${noteSize}px system-ui, sans-serif`;
+  drawWrappedLine(
+    context,
+    copy.note,
+    width / 2,
+    isCompact ? 895 : 875,
+    isCompact ? width - 250 : width - 340,
+    isCompact ? 74 : 62,
+  );
 }
 
 function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: BirthdayYearStats): SceneRuntime {
@@ -695,7 +741,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
   chapterFace.position.z = 0.12;
   chapterBillboard.add(chapterFace);
   chapterBillboard.position.set(0, 0.4, -8);
-  chapterBillboard.scale.setScalar(isCompact ? 0.66 : 1);
+  chapterBillboard.scale.setScalar(isCompact ? 0.8 : 1);
   scene.add(chapterBillboard);
   let renderedChapterKey = "";
 
@@ -1077,7 +1123,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
 
     const copy = getChapterCopy(virtualSeconds, yearStats);
     if (copy.key !== renderedChapterKey) {
-      drawChapterTexture(chapterContext, copy);
+      drawChapterTexture(chapterContext, copy, isCompact);
       chapterTexture.needsUpdate = true;
       renderedChapterKey = copy.key;
     }
@@ -1092,7 +1138,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     chapterBillboard.position.z = -11.5 + entry * 4.2;
     chapterBillboard.rotation.y = (1 - entry) * -0.11 + Math.sin(elapsed * 0.22) * 0.006;
     chapterBillboard.rotation.x = (1 - entry) * 0.045;
-    const billboardScale = (isCompact ? 0.66 : 1) * (0.86 + entry * 0.14);
+    const billboardScale = (isCompact ? 0.8 : 1) * (0.86 + entry * 0.14);
     chapterBillboard.scale.setScalar(billboardScale);
 
     travellingNature.forEach(({ anchor, baseY, baseZ, bob, wrapBuffer }, index) => {

@@ -106,7 +106,9 @@ test("wall videos and readable chapter copy are authored as 3D scene elements", 
   assert.match(experienceSource, /createCrtMaterial/);
   assert.match(experienceSource, /new THREE\.CanvasTexture/);
   assert.match(experienceSource, /chapterBillboard/);
-  assert.match(experienceSource, /isCompact \? 0\.66 : 1/);
+  assert.match(experienceSource, /fitCanvasFont/);
+  assert.match(experienceSource, /drawChapterTexture\(chapterContext, copy, isCompact\)/);
+  assert.match(experienceSource, /isCompact \? 0\.8 : 1/);
   assert.match(experienceSource, /new THREE\.Fog\(0x7163a3, 30, 150\)/);
   assert.match(experienceSource, /isCompact \? 150 : 190/);
 });
