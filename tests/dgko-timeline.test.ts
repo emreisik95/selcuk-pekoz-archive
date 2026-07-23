@@ -89,7 +89,8 @@ test("mobile render profile stays crisp on high-density phone screens", () => {
   assert.equal(mobile.compact, true);
   assert.ok(mobile.pixelRatio >= 2.25);
   assert.ok(mobile.pixelRatio <= 2.5);
-  assert.ok(mobile.frameCount >= 28);
+  assert.ok(mobile.frameCount >= 24);
+  assert.ok(mobile.frameCount <= 28);
   assert.equal(desktop.compact, false);
   assert.ok(desktop.frameCount > mobile.frameCount);
 });

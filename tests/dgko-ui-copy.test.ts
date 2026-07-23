@@ -65,6 +65,30 @@ test("the film waits for its GLB gallery assets before starting the timeline", (
   assert.match(experienceSource, /runtime\.ready/);
 });
 
+test("the entrance visibly counts down and promises an automatic start", () => {
+  assert.match(experienceSource, /DGKO_BOOT_MINIMUM_MS/);
+  assert.match(experienceSource, /dgko-countdown/);
+  assert.match(experienceSource, /dgko-loader-ready/);
+  assert.match(experienceSource, /BAŞLA!/);
+  assert.match(experienceSource, /Sahne kuruluyor/);
+  assert.match(experienceSource, /Otomatik başlayacak/);
+  assert.match(experienceStyles, /@keyframes dgko-loader-countdown/);
+});
+
+test("the corridor carries a coherent Nintendo prop language", () => {
+  assert.match(experienceSource, /makeNintendoCoin/);
+  assert.match(experienceSource, /makeWarpPipe/);
+  assert.match(experienceSource, /makePowerStar/);
+  assert.match(experienceSource, /nintendoProps/);
+  assert.match(experienceSource, /wallFramePieces\.setColorAt/);
+});
+
+test("mobile only decodes nearby wall videos", () => {
+  assert.match(experienceSource, /video\.preload\s*=\s*"metadata"/);
+  assert.match(experienceSource, /activeVideoDepth/);
+  assert.match(experienceSource, /isCompact \? -36 : -52/);
+});
+
 test("shorts are real WebGL video textures recessed into the travelling wall frames", () => {
   assert.match(experienceSource, /getTunnelPanelDepth/);
   assert.match(experienceSource, /new THREE\.VideoTexture/);
@@ -108,7 +132,10 @@ test("wall videos and readable chapter copy are authored as 3D scene elements", 
   assert.match(experienceSource, /chapterBillboard/);
   assert.match(experienceSource, /fitCanvasFont/);
   assert.match(experienceSource, /drawChapterTexture\(chapterContext, copy, isCompact\)/);
-  assert.match(experienceSource, /isCompact \? 0\.8 : 1/);
+  assert.match(experienceSource, /isCompact \? 0\.82 : 1/);
+  assert.match(experienceSource, /copy\.key === "finale" \? 0\.66 : 0\.82/);
+  assert.match(experienceSource, /isCompact \? 370 : 214/);
+  assert.match(experienceSource, /isCompact \? 82 : 48/);
   assert.match(experienceSource, /new THREE\.Fog\(0x7163a3, 30, 150\)/);
   assert.match(experienceSource, /isCompact \? 150 : 190/);
 });

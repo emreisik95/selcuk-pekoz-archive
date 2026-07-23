@@ -64,6 +64,7 @@ const DEFAULT_RECAP_KEYS: RecapKey[] = [
 
 const ROOM_DEPTH = 600;
 const CORRIDOR_NEAR_Z = 12;
+const DGKO_BOOT_MINIMUM_MS = 2600;
 
 function wrapDepth(value: number) {
   return ((((value - CORRIDOR_NEAR_Z) % ROOM_DEPTH) + ROOM_DEPTH) % ROOM_DEPTH) - ROOM_DEPTH + CORRIDOR_NEAR_Z;
@@ -368,6 +369,104 @@ function makePedestal(radius: number) {
   return pedestal;
 }
 
+function makeNintendoCoin() {
+  const coin = new THREE.Group();
+  const gold = new THREE.MeshPhysicalMaterial({
+    color: 0xf7bd28,
+    roughness: 0.24,
+    metalness: 0.58,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.22,
+  });
+  const face = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.18, 48), gold);
+  face.rotation.x = Math.PI / 2;
+  face.castShadow = true;
+  coin.add(face);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.58, 0.055, 12, 48), gold);
+  rim.position.z = 0.105;
+  rim.castShadow = true;
+  coin.add(rim);
+  for (const x of [-0.16, 0.16]) {
+    const mark = new THREE.Mesh(new THREE.CapsuleGeometry(0.075, 0.34, 6, 12), gold);
+    mark.position.set(x, 0, 0.16);
+    mark.scale.y = 1.25;
+    mark.castShadow = true;
+    coin.add(mark);
+  }
+  return coin;
+}
+
+function makeWarpPipe() {
+  const pipe = new THREE.Group();
+  const green = new THREE.MeshPhysicalMaterial({
+    color: 0x38a954,
+    roughness: 0.32,
+    metalness: 0.04,
+    clearcoat: 0.3,
+    clearcoatRoughness: 0.28,
+  });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x173f27, roughness: 0.75 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.64, 0.72, 1.55, 40), green);
+  body.position.y = 0.775;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  pipe.add(body);
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.82, 0.48, 40), green);
+  lip.position.y = 1.58;
+  lip.castShadow = true;
+  pipe.add(lip);
+  const opening = new THREE.Mesh(new THREE.CircleGeometry(0.69, 40), dark);
+  opening.rotation.x = -Math.PI / 2;
+  opening.position.y = 1.825;
+  pipe.add(opening);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.79, 0.09, 12, 48), green);
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 1.82;
+  rim.castShadow = true;
+  pipe.add(rim);
+  return pipe;
+}
+
+function makePowerStar() {
+  const shape = new THREE.Shape();
+  for (let point = 0; point < 10; point += 1) {
+    const radius = point % 2 === 0 ? 0.92 : 0.43;
+    const angle = Math.PI / 2 + point * Math.PI / 5;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
+    if (point === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  const star = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(shape, {
+      depth: 0.24,
+      bevelEnabled: true,
+      bevelSegments: 5,
+      bevelSize: 0.08,
+      bevelThickness: 0.07,
+    }),
+    new THREE.MeshPhysicalMaterial({
+      color: 0xffd34e,
+      roughness: 0.25,
+      metalness: 0.12,
+      clearcoat: 0.38,
+      clearcoatRoughness: 0.2,
+    }),
+  );
+  body.position.z = -0.12;
+  body.castShadow = true;
+  star.add(body);
+  const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x342b47, roughness: 0.68 });
+  for (const x of [-0.2, 0.2]) {
+    const eye = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.18, 5, 10), eyeMaterial);
+    eye.position.set(x, 0.06, 0.25);
+    star.add(eye);
+  }
+  return star;
+}
+
 function makeDirtPath(seed: number) {
   const group = new THREE.Group();
   const length = 32 + (seed % 3) * 4;
@@ -504,7 +603,7 @@ function drawChapterTexture(
   context.textAlign = "center";
   context.textBaseline = "middle";
   context.fillStyle = "#ffd9a6";
-  const eyebrowSize = isCompact ? 76 : 58;
+  const eyebrowSize = isCompact ? 92 : 58;
   context.font = `850 ${eyebrowSize}px system-ui, sans-serif`;
   context.letterSpacing = isCompact ? "6px" : "5px";
   context.fillText(copy.eyebrow, width / 2, isCompact ? 145 : 160);
@@ -514,12 +613,12 @@ function drawChapterTexture(
   const titleSize = fitCanvasFont(
     context,
     titleLines,
-    isCompact ? 310 : 214,
-    isCompact ? 168 : 132,
-    isCompact ? width - 270 : width - 380,
+    isCompact ? 370 : 214,
+    isCompact ? 190 : 132,
+    isCompact ? width - 210 : width - 380,
   );
-  const titleLineHeight = titleSize * 1.12;
-  const titleStart = titleLines.length > 1 ? (isCompact ? 330 : 365) : 475;
+  const titleLineHeight = titleSize * (isCompact ? 1.03 : 1.12);
+  const titleStart = titleLines.length > 1 ? (isCompact ? 315 : 365) : 475;
   context.fillStyle = "#fff8ea";
   context.font = `900 ${titleSize}px system-ui, sans-serif`;
   context.shadowColor = "rgba(35, 24, 63, 0.34)";
@@ -533,15 +632,15 @@ function drawChapterTexture(
   context.shadowOffsetY = 0;
 
   context.fillStyle = "rgba(255, 248, 234, 0.96)";
-  const noteSize = isCompact ? 66 : 48;
+  const noteSize = isCompact ? 82 : 48;
   context.font = `750 ${noteSize}px system-ui, sans-serif`;
   drawWrappedLine(
     context,
     copy.note,
     width / 2,
-    isCompact ? 895 : 875,
-    isCompact ? width - 250 : width - 340,
-    isCompact ? 74 : 62,
+    isCompact ? 900 : 875,
+    isCompact ? width - 190 : width - 340,
+    isCompact ? 88 : 62,
   );
 }
 
@@ -655,6 +754,11 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     wallFrameCount * 4,
   );
   wallFramePieces.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  const framePalette = [0xf19aaa, 0x72bfd1, 0xf2c56d, 0xb9a0d7].map((color) => new THREE.Color(color));
+  for (let index = 0; index < wallFrameCount * 4; index += 1) {
+    wallFramePieces.setColorAt(index, framePalette[Math.floor(index / 4) % framePalette.length]);
+  }
+  if (wallFramePieces.instanceColor) wallFramePieces.instanceColor.needsUpdate = true;
   scene.add(wallFramePieces);
   const wallFrameInsets = new THREE.InstancedMesh(
     new THREE.BoxGeometry(0.16, 6.45, 6.2),
@@ -674,7 +778,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
-    video.preload = "auto";
+    video.preload = "metadata";
     video.setAttribute("playsinline", "");
     const texture = new THREE.VideoTexture(video);
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -741,7 +845,7 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
   chapterFace.position.z = 0.12;
   chapterBillboard.add(chapterFace);
   chapterBillboard.position.set(0, 0.4, -8);
-  chapterBillboard.scale.setScalar(isCompact ? 0.8 : 1);
+  chapterBillboard.scale.setScalar(isCompact ? 0.82 : 1);
   scene.add(chapterBillboard);
   let renderedChapterKey = "";
 
@@ -816,8 +920,10 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     anchor: THREE.Group;
     baseY: number;
     baseZ: number;
+    baseRotationY: number;
     bob: number;
     wrapBuffer: number;
+    spinY: number;
   }> = [];
   scene.add(corridorNature);
   const placeTrackModel = (
@@ -827,9 +933,18 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     scale: number,
     bob = 0,
     wrapBuffer = 0,
+    spinY = 0,
   ) => {
     const anchor = placeModel(corridorNature, source, position, rotation, scale);
-    travellingNature.push({ anchor, baseY: position.y, baseZ: position.z, bob, wrapBuffer });
+    travellingNature.push({
+      anchor,
+      baseY: position.y,
+      baseZ: position.z,
+      baseRotationY: rotation.y,
+      bob,
+      wrapBuffer,
+      spinY,
+    });
     return anchor;
   };
   const dirtPathSegments: THREE.Group[] = [];
@@ -843,6 +958,46 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
       24,
     );
     dirtPathSegments.push(path);
+  }
+
+  const nintendoProps: THREE.Group[] = [];
+  const coinPrototype = makeNintendoCoin();
+  const pipePrototype = makeWarpPipe();
+  const starPrototype = makePowerStar();
+  for (let index = 0; index < 24; index += 1) {
+    const side = index % 2 === 0 ? -1 : 1;
+    nintendoProps.push(placeTrackModel(
+      coinPrototype.clone(true),
+      new THREE.Vector3(side * (4.75 + (index % 3) * 0.42), -1.7 + (index % 4) * 0.86, -36 - index * 23),
+      new THREE.Euler(0, index * 0.38, 0),
+      0.62 + (index % 3) * 0.07,
+      0.08,
+      8,
+      side * 1.15,
+    ));
+  }
+  for (let index = 0; index < 7; index += 1) {
+    const side = index % 2 === 0 ? -1 : 1;
+    nintendoProps.push(placeTrackModel(
+      pipePrototype.clone(true),
+      new THREE.Vector3(side * 6.2, -5.04, -82 - index * 78),
+      new THREE.Euler(0, side * 0.12, 0),
+      0.82 + (index % 2) * 0.12,
+      0,
+      18,
+    ));
+  }
+  for (let index = 0; index < 6; index += 1) {
+    const side = index % 2 === 0 ? -1 : 1;
+    nintendoProps.push(placeTrackModel(
+      starPrototype.clone(true),
+      new THREE.Vector3(side * 5.35, 2.35 + (index % 3) * 0.52, -124 - index * 92),
+      new THREE.Euler(0, side * 0.18, 0),
+      0.72,
+      0.11,
+      12,
+      side * 0.42,
+    ));
   }
 
   loader.load("/dgko/models/gameboy-optimized.glb", (gltf) => {
@@ -898,6 +1053,18 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
       new THREE.Vector3(5.15, -3.62, -8.2),
       new THREE.Euler(0, -0.35, 0),
     );
+    for (let index = 0; index < 8; index += 1) {
+      const side = index % 2 === 0 ? -1 : 1;
+      nintendoProps.push(placeTrackModel(
+        gltf.scene.clone(true),
+        new THREE.Vector3(side * 5.8, -2.85 + (index % 2) * 0.55, -110 - index * 68),
+        new THREE.Euler(0.05, side * 0.22, -side * 0.04),
+        0.52 + (index % 3) * 0.06,
+        0.06,
+        14,
+        side * 0.16,
+      ));
+    }
   });
   loader.load("/dgko/models/super-mushroom-hq.glb", (gltf) => {
     if (disposed) return;
@@ -1103,11 +1270,12 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     videoChannels.forEach((channel) => {
       channel.wanted = false;
     });
+    const activeVideoDepth = isCompact ? -36 : -52;
     wallVideoScreens.forEach(({ mesh, screenIndex, channelIndex }) => {
       const z = getTunnelPanelDepth(screenIndex, travel, 24);
       mesh.position.z = z;
       mesh.visible = z < 10.5 && z > -155;
-      if (z < 9 && z > -72) videoChannels[channelIndex].wanted = true;
+      if (z < 9 && z > activeVideoDepth) videoChannels[channelIndex].wanted = true;
     });
     videoChannels.forEach((channel) => {
       if (channel.wanted && !channel.playing) {
@@ -1138,12 +1306,14 @@ function buildScene(host: HTMLDivElement, shorts: BirthdayShort[], yearStats: Bi
     chapterBillboard.position.z = -11.5 + entry * 4.2;
     chapterBillboard.rotation.y = (1 - entry) * -0.11 + Math.sin(elapsed * 0.22) * 0.006;
     chapterBillboard.rotation.x = (1 - entry) * 0.045;
-    const billboardScale = (isCompact ? 0.8 : 1) * (0.86 + entry * 0.14);
+    const compactBillboardScale = copy.key === "finale" ? 0.66 : 0.82;
+    const billboardScale = (isCompact ? compactBillboardScale : 1) * (0.86 + entry * 0.14);
     chapterBillboard.scale.setScalar(billboardScale);
 
-    travellingNature.forEach(({ anchor, baseY, baseZ, bob, wrapBuffer }, index) => {
+    travellingNature.forEach(({ anchor, baseY, baseZ, baseRotationY, bob, wrapBuffer, spinY }, index) => {
       anchor.position.z = wrapDepthWithBuffer(baseZ + travel, wrapBuffer);
       anchor.position.y = baseY + Math.sin(elapsed * 0.32 + index * 0.91) * bob;
+      anchor.rotation.y = baseRotationY + elapsed * spinY;
     });
 
     const placeTravellingStage = (
@@ -1239,8 +1409,10 @@ export function BirthdayExperience({ shorts, yearStats }: Props) {
     let animationFrame = 0;
     let lastUiUpdate = 0;
     let assetTimeout = 0;
+    let bootTimeout = 0;
     let filmStarted = false;
     let cancelled = false;
+    const bootStartedAt = performance.now();
 
     setReady(false);
     setSceneFailed(false);
@@ -1260,8 +1432,15 @@ export function BirthdayExperience({ shorts, yearStats }: Props) {
 
     function beginFilm() {
       if (cancelled || filmStarted) return;
+      const remainingBootTime = DGKO_BOOT_MINIMUM_MS - (performance.now() - bootStartedAt);
+      if (remainingBootTime > 0) {
+        window.clearTimeout(bootTimeout);
+        bootTimeout = window.setTimeout(beginFilm, remainingBootTime);
+        return;
+      }
       filmStarted = true;
       window.clearTimeout(assetTimeout);
+      window.clearTimeout(bootTimeout);
       startedAt.current = performance.now();
       setReady(true);
       animationFrame = requestAnimationFrame(tick);
@@ -1282,6 +1461,7 @@ export function BirthdayExperience({ shorts, yearStats }: Props) {
     return () => {
       cancelled = true;
       window.clearTimeout(assetTimeout);
+      window.clearTimeout(bootTimeout);
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(animationFrame);
       runtime?.dispose();
@@ -1345,8 +1525,21 @@ export function BirthdayExperience({ shorts, yearStats }: Props) {
 
       {!ready && (
         <div className="dgko-loader" role="status" aria-live="polite">
-          <span aria-hidden="true" />
-          <p>Hazırlanıyor…</p>
+          <div className="dgko-loader-mark" aria-hidden="true">
+            <i className="dgko-loader-joy dgko-loader-joy-left" />
+            <div className="dgko-countdown">
+              <b>3</b>
+              <b>2</b>
+              <b>1</b>
+              <em className="dgko-loader-ready">BAŞLA!</em>
+            </div>
+            <i className="dgko-loader-joy dgko-loader-joy-right" />
+          </div>
+          <div className="dgko-loader-copy">
+            <strong>Sahne kuruluyor</strong>
+            <span>Shorts hazırlanıyor · Otomatik başlayacak</span>
+          </div>
+          <div className="dgko-loader-progress" aria-hidden="true"><i /></div>
         </div>
       )}
 

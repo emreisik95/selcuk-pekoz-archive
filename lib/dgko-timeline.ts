@@ -71,7 +71,7 @@ export function getRenderProfile(viewportWidth: number, devicePixelRatio: number
   return {
     compact,
     pixelRatio: Math.min(Math.max(2.25, devicePixelRatio), compact ? 2.5 : 2.25),
-    frameCount: compact ? 30 : 52,
+    frameCount: compact ? 26 : 52,
     confettiCount: compact ? 420 : 680,
   };
 }
