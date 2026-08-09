@@ -45,6 +45,30 @@ test("the channel hero communicates every broadcast state and its actions", () =
   assert.match(hero, /\/y\/\$\{active\.id\}/);
 });
 
+test("the above-the-fold hero image is requested eagerly", () => {
+  const hero = read("components/channel/ChannelHero.tsx");
+  const thumb = read("components/Thumb.tsx");
+
+  assert.match(hero, /loading="eager"/);
+  assert.match(thumb, /loading\?: "lazy" \| "eager"/);
+  assert.match(thumb, /loading=\{loading\}/);
+});
+
+test("favorite controls remain siblings of card links", () => {
+  for (const path of ["components/channel/BroadcastGrid.tsx", "components/MCard.tsx"]) {
+    const source = read(path);
+    let linkDepth = 0;
+
+    for (const token of source.matchAll(/<Link\b|<\/Link>|<FavoriteButton\b/g)) {
+      if (token[0] === "<Link") linkDepth += 1;
+      if (token[0] === "</Link>") linkDepth -= 1;
+      if (token[0] === "<FavoriteButton") {
+        assert.equal(linkDepth, 0, `${path} must not nest a button inside a link`);
+      }
+    }
+  }
+});
+
 test("channel metrics label the archive in human terms", () => {
   const path = "components/channel/ChannelMetrics.tsx";
   assert.equal(existsSync(path), true, "ChannelMetrics should exist");
@@ -83,4 +107,6 @@ test("the homepage is a complete channel hub, not only a hero", () => {
   for (const section of ["Son yayınlar", "Kısa sinyaller", "Arşive dal"]) {
     assert.match(surface, new RegExp(section));
   }
+
+  assert.match(read("components/channel/ArchivePortal.tsx"), /bg-broadcast text-paper border border-white\/15/);
 });

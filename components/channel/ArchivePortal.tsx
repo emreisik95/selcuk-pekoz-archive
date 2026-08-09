@@ -33,7 +33,7 @@ const portals = [
     href: "/istatistikler",
     kicker: "Kanalın hafızası",
     title: "Saatleri, serileri ve ritmi gör",
-    tone: "bg-broadcast text-paper",
+    tone: "bg-broadcast text-paper border border-white/15",
     glyph: "⌗",
   },
 ] as const;

@@ -77,6 +77,7 @@ export function ChannelHero({ snapshot, now, freezeCountdown }: Props) {
           stream={active}
           className="signal-image absolute inset-0"
           showLive={false}
+          loading="eager"
         />
         <div className="absolute inset-0 z-[1] bg-[linear-gradient(180deg,rgba(9,10,12,0.02)_35%,rgba(9,10,12,0.82)_100%)]" />
         <div className="signal-grid absolute inset-0 z-[1] opacity-30" />

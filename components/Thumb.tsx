@@ -15,6 +15,7 @@ type ThumbProps = {
   variant?: ThumbVariant;
   className?: string;
   style?: CSSProperties;
+  loading?: "lazy" | "eager";
 };
 
 export function Thumb({
@@ -23,6 +24,7 @@ export function Thumb({
   variant,
   className,
   style,
+  loading = "lazy",
 }: ThumbProps) {
   const [bg, accent, deep] = stream.palette;
   const v = variant ?? pickVariant(stream.id);
@@ -38,7 +40,7 @@ export function Thumb({
         <img
           src={stream.thumbnailUrl}
           alt={stream.title}
-          loading="lazy"
+          loading={loading}
           className="absolute inset-0 w-full h-full object-cover"
         />
       )}

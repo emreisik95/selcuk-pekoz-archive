@@ -74,39 +74,43 @@ export function BroadcastGrid({ recent, upcoming, pinned, now }: Props) {
 
       {lead && (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,.75fr)]">
-          <Link href={`/y/${lead.id}`} className="group block">
-            <div className="relative aspect-video overflow-hidden rounded-[22px] bg-broadcast">
-              <Thumb
-                stream={lead}
-                className="transition-transform duration-500 ease-out group-hover:scale-[1.025]"
-              />
-              <FavoriteButton videoId={lead.id} />
-              <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 to-transparent" />
-              <span className="absolute bottom-4 left-4 rounded-full bg-paper px-3 py-1.5 font-mono text-[8px] uppercase tracking-[0.14em] text-broadcast md:bottom-5 md:left-5">
-                En yeni kayıt
-              </span>
-            </div>
-            <h3 className="font-display mt-4 max-w-4xl text-balance text-[28px] font-bold leading-[1.02] tracking-[-0.04em] group-hover:underline md:text-[38px]">
-              {lead.title}
-            </h3>
-            <BroadcastMeta stream={lead} now={now} />
-          </Link>
+          <div className="group relative">
+            <Link href={`/y/${lead.id}`} className="block">
+              <div className="relative aspect-video overflow-hidden rounded-[22px] bg-broadcast">
+                <Thumb
+                  stream={lead}
+                  className="transition-transform duration-500 ease-out group-hover:scale-[1.025]"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/75 to-transparent" />
+                <span className="absolute bottom-4 left-4 rounded-full bg-paper px-3 py-1.5 font-mono text-[8px] uppercase tracking-[0.14em] text-broadcast md:bottom-5 md:left-5">
+                  En yeni kayıt
+                </span>
+              </div>
+              <h3 className="font-display mt-4 max-w-4xl text-balance text-[28px] font-bold leading-[1.02] tracking-[-0.04em] group-hover:underline md:text-[38px]">
+                {lead.title}
+              </h3>
+              <BroadcastMeta stream={lead} now={now} />
+            </Link>
+            <FavoriteButton videoId={lead.id} />
+          </div>
 
           <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-4 lg:grid-rows-2">
             {supporting.map((stream) => (
-              <Link key={stream.id} href={`/y/${stream.id}`} className="group min-w-0">
-                <div className="relative aspect-video overflow-hidden rounded-[12px] bg-broadcast">
-                  <Thumb
-                    stream={stream}
-                    className="transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                  />
-                  <FavoriteButton videoId={stream.id} />
-                </div>
-                <h3 className="mt-2.5 line-clamp-2 text-[13px] font-semibold leading-snug group-hover:underline md:text-[14px]">
-                  {stream.title}
-                </h3>
-                <BroadcastMeta stream={stream} now={now} />
-              </Link>
+              <div key={stream.id} className="group relative min-w-0">
+                <Link href={`/y/${stream.id}`} className="block">
+                  <div className="relative aspect-video overflow-hidden rounded-[12px] bg-broadcast">
+                    <Thumb
+                      stream={stream}
+                      className="transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    />
+                  </div>
+                  <h3 className="mt-2.5 line-clamp-2 text-[13px] font-semibold leading-snug group-hover:underline md:text-[14px]">
+                    {stream.title}
+                  </h3>
+                  <BroadcastMeta stream={stream} now={now} />
+                </Link>
+                <FavoriteButton videoId={stream.id} />
+              </div>
             ))}
           </div>
         </div>
