@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useFavorites } from "@/lib/favorites";
+import { ChannelMark } from "./ChannelMark";
 
 const links = [
-  { href: "/", label: "Anasayfa" },
+  { href: "/", label: "Sinyal" },
   { href: "/takvim", label: "Takvim" },
   { href: "/arsiv", label: "Arşiv" },
   { href: "/shorts", label: "Shorts" },
-  { href: "/istatistikler", label: "İstatistikler" },
-  { href: "/hakkinda", label: "Hakkında" },
+  { href: "/istatistikler", label: "Rakamlar" },
 ];
 
 export function Nav() {
@@ -39,15 +39,15 @@ export function Nav() {
   const favActive = isActive("/favorilerim");
 
   return (
-    <header className="sticky top-0 z-30 bg-bg border-b border-hair">
-      <div className="h-14 px-5 md:px-10 flex md:grid md:grid-cols-[1fr_auto_1fr] items-center gap-3 md:gap-6">
+    <header className="sticky top-0 z-30 border-b border-hair bg-bg/90 backdrop-blur-xl">
+      <div className="flex h-16 items-center gap-3 px-4 md:grid md:grid-cols-[1fr_auto_1fr] md:gap-7 md:px-8 lg:px-10">
         {/* Mobile menu button */}
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-label={open ? "Menüyü kapat" : "Menüyü aç"}
           aria-expanded={open}
-          className="md:hidden inline-flex items-center justify-center w-8 h-8 -ml-1.5 text-text"
+          className="inline-flex size-10 -ml-2 items-center justify-center text-text md:hidden"
         >
           {open ? (
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -62,23 +62,13 @@ export function Nav() {
 
         <Link
           href="/"
-          className="flex items-baseline gap-2 md:justify-self-start min-w-0"
+          aria-label="Selçuk Peköz Channel HQ — ana sayfa"
+          className="min-w-0 md:justify-self-start"
         >
-          <span
-            className="font-serif text-[16px] md:text-[17px] font-semibold text-text whitespace-nowrap"
-            style={{ letterSpacing: "-0.015em" }}
-          >
-            Selçuk Peköz
-          </span>
-          <span
-            className="hidden sm:inline font-serif text-[15px] text-faint whitespace-nowrap"
-            style={{ letterSpacing: "-0.01em" }}
-          >
-            · Yayın Arşivi
-          </span>
+          <ChannelMark />
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 md:justify-self-center">
+        <nav className="hidden items-center rounded-full border border-hair bg-surface/70 p-1 md:flex md:justify-self-center">
           {links.map((l) => {
             const active = isActive(l.href);
             return (
@@ -86,25 +76,24 @@ export function Nav() {
                 key={l.href}
                 href={l.href}
                 className={
-                  "relative py-1 text-[13px] " +
-                  (active ? "text-text" : "text-muted hover:text-text")
+                  "relative rounded-full px-3.5 py-2 text-[12px] font-medium transition-colors " +
+                  (active
+                    ? "bg-text text-bg"
+                    : "text-muted hover:bg-text/5 hover:text-text")
                 }
               >
                 {l.label}
-                {active && (
-                  <span className="absolute left-0 right-0 -bottom-[1px] h-[2px] bg-ink" />
-                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-3 md:justify-self-end ml-auto md:ml-0">
+        <div className="ml-auto flex items-center gap-1 md:ml-0 md:justify-self-end">
           <Link
             href="/favorilerim"
             aria-label="Favorilerim"
             className={
-              "inline-flex items-center gap-1 " +
+              "inline-flex size-9 items-center justify-center gap-1 rounded-full border border-transparent hover:border-hair " +
               (favActive ? "text-red" : "text-muted hover:text-text")
             }
           >
@@ -142,10 +131,8 @@ export function Nav() {
             onClick={() => setOpen(false)}
             className="md:hidden fixed inset-x-0 top-14 bottom-0 z-20 bg-ink/40 backdrop-blur-sm"
           />
-          <nav
-            className="md:hidden absolute left-0 right-0 top-full bg-bg border-b border-hair z-30 shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.6)]"
-          >
-            <div className="px-5 py-2 flex flex-col">
+          <nav className="absolute left-0 right-0 top-full z-30 border-b border-hair bg-bg shadow-[0_18px_50px_rgba(0,0,0,0.16)] md:hidden">
+            <div className="flex flex-col px-5 py-3">
               {links.map((l) => {
                 const active = isActive(l.href);
                 return (
@@ -154,7 +141,7 @@ export function Nav() {
                     href={l.href}
                     onClick={() => setOpen(false)}
                     className={
-                      "flex items-center justify-between py-3 border-b border-hair last:border-b-0 text-[15px] " +
+                      "flex items-center justify-between border-b border-hair py-3.5 text-[15px] last:border-b-0 " +
                       (active ? "text-text font-medium" : "text-muted")
                     }
                   >

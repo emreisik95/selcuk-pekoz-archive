@@ -3,23 +3,32 @@
 @variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #faf9f6;
-  --color-surface: #ffffff;
-  --color-text: #1a1815;
-  --color-muted: #6b6660;
-  --color-faint: #a8a39c;
-  --color-hair: #e8e4dd;
-  --color-ink: #0d0c0a;
-  --color-red: #dc2626;
-  --color-event-past: #f0ede5;
+  /* Channel HQ palette: broadcast hardware, paper schedules and on-air light. */
+  --color-broadcast: #090a0c;
+  --color-paper: #f4f1e8;
+  --color-on-air: #ff3b30;
+  --color-switch: #3e7bfa;
+  --color-phosphor: #c7f36b;
+  --color-console: #74756f;
 
-  /* All headings use the same Inter family — `font-serif` keeps working as
-     an alias so existing classes don't need touching. Letter-spacing is
-     pulled tighter on display sizes via per-element class overrides. */
+  --color-bg: #f4f1e8;
+  --color-surface: #fffdf7;
+  --color-text: #090a0c;
+  --color-muted: #5e5e58;
+  --color-faint: #85847c;
+  --color-hair: #d9d5ca;
+  --color-ink: #090a0c;
+  --color-red: #df2e27;
+  --color-blue: #205fd5;
+  --color-lime: #4b7000;
+  --color-event-past: #e8e3d6;
+
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
     Roboto, system-ui, sans-serif;
-  --font-serif: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI",
-    Roboto, system-ui, sans-serif;
+  --font-serif: var(--font-bricolage), var(--font-inter), -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-inter), -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo,
     monospace;
 
@@ -29,17 +38,18 @@
   --radius-lg: 2px;
 }
 
-/* Dark theme — same hierarchy, warm dark instead of warm light. */
 .dark {
-  --color-bg: #0d0c0a;
-  --color-surface: #16140f;
-  --color-text: #ece7df;
-  --color-muted: #8b857c;
-  --color-faint: #565148;
-  --color-hair: #2a2620;
-  --color-ink: #faf9f6;
-  --color-red: #ef4444;
-  --color-event-past: #1f1c16;
+  --color-bg: #090a0c;
+  --color-surface: #121419;
+  --color-text: #f4f1e8;
+  --color-muted: #aaa89f;
+  --color-faint: #71716b;
+  --color-hair: #292b30;
+  --color-ink: #f4f1e8;
+  --color-red: #ff5a52;
+  --color-blue: #72a2ff;
+  --color-lime: #c7f36b;
+  --color-event-past: #191b20;
 }
 
 html {
@@ -64,10 +74,21 @@ body {
   overflow-x: clip;
 }
 
+::selection {
+  background: var(--color-on-air);
+  color: #fff;
+}
+
 /* Display sizes (hero countdown, page titles) get tighter tracking and
    slightly heavier weight so they read as proper headings without serif. */
 .font-serif {
   letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 100;
+  letter-spacing: -0.035em;
 }
 
 .tabular { font-variant-numeric: tabular-nums; }
@@ -87,4 +108,70 @@ a:focus-visible,
 }
 .live-dot {
   animation: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes signal-scan {
+  0% { transform: translate3d(0, -120%, 0); opacity: 0; }
+  12% { opacity: 0.9; }
+  68% { opacity: 0.65; }
+  100% { transform: translate3d(0, 520%, 0); opacity: 0; }
+}
+
+@keyframes signal-lock {
+  0% { filter: grayscale(1) contrast(1.35); transform: scale(1.035); }
+  38% { filter: grayscale(0.8) contrast(1.2); }
+  100% { filter: grayscale(0) contrast(1); transform: scale(1); }
+}
+
+.channel-signal {
+  position: relative;
+  isolation: isolate;
+}
+
+.channel-signal::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset-inline: 0;
+  top: 0;
+  height: 18%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgb(255 255 255 / 38%), transparent);
+  mix-blend-mode: screen;
+  animation: signal-scan 1.45s cubic-bezier(.2,.75,.2,1) .15s both;
+}
+
+.channel-signal > img,
+.channel-signal .signal-image {
+  animation: signal-lock 1s cubic-bezier(.2,.75,.2,1) both;
+}
+
+.signal-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.signal-link {
+  transition: transform 180ms ease, color 180ms ease, background-color 180ms ease;
+}
+
+.signal-link:hover {
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .channel-signal::after {
+    display: none;
+  }
 }
