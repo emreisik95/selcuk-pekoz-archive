@@ -32,6 +32,7 @@ test("admin overview exposes state, health, coverage and publishing actions", ()
   ]) {
     assert.match(overview, new RegExp(label));
   }
+  assert.match(overview, /Henüz başarılı bir senkron kaydı yok/);
   for (const tab of ["events", "content", "system"]) {
     assert.match(overview, new RegExp(`\\?t=${tab}`));
   }

@@ -41,6 +41,8 @@ export function Thumb({
           src={stream.thumbnailUrl}
           alt={stream.title}
           loading={loading}
+          fetchPriority={loading === "eager" ? "high" : "auto"}
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
       )}

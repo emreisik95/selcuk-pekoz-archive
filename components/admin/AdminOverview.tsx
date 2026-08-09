@@ -56,6 +56,13 @@ function ageLabel(minutes: number | null) {
 export function AdminOverview({ overview }: Props) {
   const mode = modeCopy[overview.publicMode];
   const health = healthCopy[overview.health];
+  const healthNote =
+    overview.health === "review" && overview.dataAgeMinutes === null
+      ? "Henüz başarılı bir senkron kaydı yok."
+      : overview.health === "review" &&
+          overview.counts.live + overview.counts.upcoming + overview.counts.completed === 0
+        ? "Kanal verisi boş; senkron ve yapılandırmayı kontrol et."
+        : health.note;
   const coverage = [
     { value: overview.counts.live, label: "Canlı" },
     { value: overview.counts.upcoming, label: "Yaklaşan" },
@@ -143,7 +150,7 @@ export function AdminOverview({ overview }: Props) {
               {health.label}
             </h2>
           </div>
-          <p className="mt-2 text-[12px] leading-5 text-muted">{health.note}</p>
+          <p className="mt-2 text-[12px] leading-5 text-muted">{healthNote}</p>
 
           <dl className="mt-8 space-y-3 border-t border-current/10 pt-5 text-[11px]">
             <div className="flex items-center justify-between gap-4">

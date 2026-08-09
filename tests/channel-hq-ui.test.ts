@@ -13,6 +13,7 @@ test("Channel HQ owns a display face and one reduced-motion-safe signal", () => 
   assert.match(css, /\.channel-signal/);
   assert.match(css, /\.signal-grid/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.match(css, /\.bg-broadcast :is\(button, a\):focus-visible/);
 });
 
 test("global navigation keeps the complete channel within one step", () => {
@@ -52,6 +53,7 @@ test("the above-the-fold hero image is requested eagerly", () => {
   assert.match(hero, /loading="eager"/);
   assert.match(thumb, /loading\?: "lazy" \| "eager"/);
   assert.match(thumb, /loading=\{loading\}/);
+  assert.match(thumb, /fetchPriority=\{loading === "eager" \? "high" : "auto"\}/);
 });
 
 test("favorite controls remain siblings of card links", () => {
@@ -67,6 +69,11 @@ test("favorite controls remain siblings of card links", () => {
       }
     }
   }
+
+  assert.match(
+    read("components/FavoriteButton.tsx"),
+    /opacity-100 md:opacity-0 md:group-hover:opacity-100/,
+  );
 });
 
 test("channel metrics label the archive in human terms", () => {

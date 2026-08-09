@@ -22,7 +22,7 @@ export function FavoriteButton({ videoId, className, variant = "card" }: Props) 
     "absolute top-2 right-2 z-10 w-8 h-8 inline-flex items-center justify-center rounded-full backdrop-blur-sm transition-colors " +
     (isFav
       ? "bg-red text-white"
-      : "bg-black/40 text-white opacity-0 group-hover:opacity-100 focus:opacity-100");
+      : "bg-black/40 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100");
 
   const inlineCls =
     "inline-flex items-center justify-center gap-1.5 border text-[12px] font-medium px-3 py-2 rounded-[2px] transition-colors " +

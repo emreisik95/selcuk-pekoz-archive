@@ -102,6 +102,10 @@ a:focus-visible,
   outline-offset: 2px;
 }
 
+.bg-broadcast :is(button, a):focus-visible {
+  outline-color: var(--color-paper);
+}
+
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
