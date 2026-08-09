@@ -59,3 +59,28 @@ test("channel metrics label the archive in human terms", () => {
     assert.match(metrics, new RegExp(label));
   }
 });
+
+test("the homepage is a complete channel hub, not only a hero", () => {
+  const componentPaths = [
+    "components/channel/BroadcastGrid.tsx",
+    "components/channel/ShortsRail.tsx",
+    "components/channel/ArchivePortal.tsx",
+  ];
+  for (const path of componentPaths) {
+    assert.equal(existsSync(path), true, `${path} should exist`);
+  }
+
+  const home = read("app/page.tsx");
+  const surface = [home, ...componentPaths.map(read)].join("\n");
+
+  assert.match(home, /buildChannelSnapshot/);
+  assert.match(home, /getShorts/);
+  assert.match(home, /ChannelHero/);
+  assert.match(home, /ChannelMetrics/);
+  for (const href of ["/arsiv", "/shorts", "/takvim", "/istatistikler", "/rastgele"]) {
+    assert.match(surface, new RegExp(`href(?:=|:)\\s*[{]?\\"${href}\\"`));
+  }
+  for (const section of ["Son yayınlar", "Kısa sinyaller", "Arşive dal"]) {
+    assert.match(surface, new RegExp(section));
+  }
+});
