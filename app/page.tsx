@@ -13,11 +13,10 @@ import { getAllStreams, getNow, isUsingMockData } from "@/lib/streams";
 
 export const revalidate = 10;
 
-export default function HomePage() {
-  const streams = getAllStreams();
+export default async function HomePage() {
+  const [streams, config] = await Promise.all([getAllStreams(), getAdminConfig()]);
   const shorts = getShorts();
   const now = getNow();
-  const config = getAdminConfig();
   const snapshot = buildChannelSnapshot(streams, shorts, now);
   const pinned = config.pinnedVideoId
     ? streams.find((stream) => stream.id === config.pinnedVideoId)

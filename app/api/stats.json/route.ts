@@ -31,8 +31,7 @@ import { tagCounts, TAG_RULES } from "@/lib/tags";
 export const revalidate = 60;
 
 export async function GET() {
-  const all = getAllStreams();
-  const past = getPastStreams();
+  const [all, past] = await Promise.all([getAllStreams(), getPastStreams()]);
   const now = getNow();
 
   const t = totals(all);

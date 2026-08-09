@@ -121,9 +121,11 @@ export async function GET() {
   const calName = `${channelTitle} Yayınları`;
   const domain = calendarDomain();
 
-  const upcoming = getUpcomingStreams();
-  const live = getLiveStreams();
-  const past = getPastStreams();
+  const [upcoming, live, past] = await Promise.all([
+    getUpcomingStreams(),
+    getLiveStreams(),
+    getPastStreams(),
+  ]);
   const cutoff = Date.now() - 60 * 24 * 3600 * 1000;
   const recentPast = past.filter(
     (s) => new Date(s.actualStartAt ?? s.scheduledAt).getTime() >= cutoff,

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/auth";
-import { addManualEvent } from "@/lib/manual";
+import { addManualEvents } from "@/lib/manual";
 
 export async function POST(req: Request) {
   if (!(await isAdmin())) {
@@ -61,20 +61,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Tarih/saat hatalı" }, { status: 400 });
   }
 
-  const created = [];
+  const inputs = [];
   for (let i = 0; i < b.count; i++) {
     // TRT input → ISO UTC. TRT is UTC+3, no DST.
     const utcDate = new Date(
       Date.UTC(yy, mo - 1, dd + i * b.intervalDays, hh - 3, mm, 0),
     );
-    const ev = addManualEvent({
+    inputs.push({
       title: b.title.trim(),
       scheduledAt: utcDate.toISOString(),
       description: b.description?.trim() || undefined,
       durationMin:
         b.durationMin && b.durationMin > 0 ? b.durationMin : undefined,
     });
-    created.push(ev);
   }
+  const created = await addManualEvents(inputs);
   return NextResponse.json({ created }, { status: 201 });
 }

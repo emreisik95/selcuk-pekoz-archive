@@ -54,12 +54,13 @@ export async function subscribeToChannel(
   // Hub returns 202 Accepted; verification happens out-of-band on our
   // /api/webhook/youtube GET handler. Persist intent — verification
   // will flip `active` on once the GET hits.
-  patchAdminConfig({
+  const config = await getAdminConfig();
+  await patchAdminConfig({
     pubsub: {
       channelId,
       active: false,
       leaseExpiresAt: null,
-      lastNotifiedAt: getAdminConfig().pubsub.lastNotifiedAt,
+      lastNotifiedAt: config.pubsub.lastNotifiedAt,
       secret,
     },
   });
@@ -70,14 +71,14 @@ export async function unsubscribeFromChannel(): Promise<{
   ok: boolean;
   error?: string;
 }> {
-  const cfg = getAdminConfig();
+  const cfg = await getAdminConfig();
   const channelId = cfg.pubsub.channelId;
   if (!channelId) return { ok: false, error: "Abonelik yok" };
   const r = await hubRequest(channelId, "unsubscribe", cfg.pubsub.secret ?? undefined);
   if (!r.ok) {
     return { ok: false, error: `hub ${r.status}: ${r.body.slice(0, 200)}` };
   }
-  patchAdminConfig({
+  await patchAdminConfig({
     pubsub: {
       channelId: null,
       active: false,
@@ -90,9 +91,9 @@ export async function unsubscribeFromChannel(): Promise<{
 }
 
 // Called by the verification GET handler — flips active=true and records lease.
-export function recordSubscriptionConfirmed(leaseSeconds: number): void {
-  const cfg = getAdminConfig();
-  patchAdminConfig({
+export async function recordSubscriptionConfirmed(leaseSeconds: number): Promise<void> {
+  const cfg = await getAdminConfig();
+  await patchAdminConfig({
     pubsub: {
       ...cfg.pubsub,
       active: true,
@@ -103,9 +104,9 @@ export function recordSubscriptionConfirmed(leaseSeconds: number): void {
   });
 }
 
-export function recordNotificationReceived(): void {
-  const cfg = getAdminConfig();
-  patchAdminConfig({
+export async function recordNotificationReceived(): Promise<void> {
+  const cfg = await getAdminConfig();
+  await patchAdminConfig({
     pubsub: { ...cfg.pubsub, lastNotifiedAt: new Date().toISOString() },
   });
 }

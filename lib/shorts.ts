@@ -1,28 +1,26 @@
 // Server-side data layer for shorts. Reads data/shorts.json (written by
-// `npm run sync`); empty array if absent.
+// `npm run sync`) or its build-time copy on filesystem-less runtimes.
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Short } from "./types";
+import {
+  getBundledShortsFile,
+  type BundledShortsFile,
+} from "./bundled-channel-data";
 
-type ShortsFile = {
-  syncedAt: string;
-  channelId: string;
-  channelTitle: string;
-  handle: string;
-  shorts: Short[];
-};
+type ShortsFile = BundledShortsFile;
 
 const PATH = join(process.cwd(), "data", "shorts.json");
 let cache: { mtimeMs: number; data: ShortsFile } | null = null;
 
-function load(): ShortsFile | null {
-  if (!existsSync(PATH)) return null;
+function load(): ShortsFile {
+  if (!existsSync(PATH)) return getBundledShortsFile();
   let mtimeMs: number;
   try {
     mtimeMs = statSync(PATH).mtimeMs;
   } catch {
-    return null;
+    return getBundledShortsFile();
   }
   if (cache && cache.mtimeMs === mtimeMs) return cache.data;
   try {
@@ -30,10 +28,10 @@ function load(): ShortsFile | null {
     cache = { mtimeMs, data };
     return data;
   } catch {
-    return null;
+    return getBundledShortsFile();
   }
 }
 
 export function getShorts(): Short[] {
-  return load()?.shorts ?? [];
+  return load().shorts;
 }

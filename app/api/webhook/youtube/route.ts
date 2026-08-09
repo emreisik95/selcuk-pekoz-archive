@@ -24,7 +24,7 @@ export async function GET(req: Request) {
     return new Response("missing params", { status: 400 });
   }
 
-  const cfg = getAdminConfig();
+  const cfg = await getAdminConfig();
   const expectedTopic = cfg.pubsub.channelId
     ? `https://www.youtube.com/xml/feeds/videos.xml?channel_id=${cfg.pubsub.channelId}`
     : null;
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   }
 
   if (mode === "subscribe" && lease > 0) {
-    recordSubscriptionConfirmed(lease);
+    await recordSubscriptionConfirmed(lease);
   } else if (mode === "unsubscribe") {
     // Already cleared in unsubscribe API — just confirm the challenge.
   }
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const xml = await req.text();
   const videoIds = parseNotificationVideoIds(xml);
   if (videoIds.length > 0) {
-    recordNotificationReceived();
+    await recordNotificationReceived();
     // Trigger a full sync in the background — picks up the new video and
     // updates everything else opportunistically.
     const script = ["dist", "scripts", "sync.cjs"].join("/");

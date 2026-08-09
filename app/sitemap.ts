@@ -3,8 +3,8 @@ import { getAllStreams } from "@/lib/streams";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const streams = getAllStreams();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const streams = await getAllStreams();
   const now = new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [

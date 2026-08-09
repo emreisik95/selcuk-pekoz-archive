@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy -- --keep-vars",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "test": "node --import tsx --test tests/**/*.test.ts",
     "start": "next start",
     "sync": "tsx scripts/sync.ts",
@@ -12,12 +15,13 @@
     "build:scripts": "esbuild scripts/sync.ts scripts/check-live.ts --bundle --platform=node --target=node22 --format=cjs --outdir=dist/scripts --out-extension:.js=.cjs"
   },
   "dependencies": {
-    "next": "16.2.5",
+    "next": "^16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -27,6 +31,7 @@
     "esbuild": "^0.25.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.120.0"
   }
 }

@@ -10,7 +10,7 @@ export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   }
-  return NextResponse.json({ entries: readLog(), inflight });
+  return NextResponse.json({ entries: await readLog(), inflight });
 }
 
 export async function POST(req: Request) {
@@ -19,6 +19,16 @@ export async function POST(req: Request) {
   }
   const url = new URL(req.url);
   const kind = url.searchParams.get("kind") === "live" ? "live" : "full";
+
+  if (process.env.DEPLOY_TARGET === "cloudflare") {
+    return NextResponse.json(
+      {
+        error:
+          "Worker içinde manuel senkron çalıştırılamaz. Önce repository sync, ardından deploy çalıştırılmalı.",
+      },
+      { status: 501 },
+    );
+  }
 
   if (inflight) {
     return NextResponse.json(

@@ -1,8 +1,8 @@
 import { getAdminConfig } from "@/lib/admin-config";
 import { SocialIcon, platformLabel } from "./SocialIcon";
 
-export function Footer() {
-  const cfg = getAdminConfig();
+export async function Footer() {
+  const cfg = await getAdminConfig();
   const links = cfg.socialLinks;
 
   return (

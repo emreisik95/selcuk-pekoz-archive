@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "selcuk-pekoz-archive",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "ADMIN_DATA",
+      "id": "bd0dd9aafe884b30891250dcc9d6136c"
+    }
+  ],
+  "vars": {
+    "DEPLOY_TARGET": "cloudflare"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

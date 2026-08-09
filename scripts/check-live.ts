@@ -102,9 +102,9 @@ async function main() {
 
 const startedAt = new Date();
 main()
-  .then(() => {
+  .then(async () => {
     const finishedAt = new Date();
-    appendLog({
+    await appendLog({
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
       kind: "live-check",
@@ -113,11 +113,11 @@ main()
       message: "Canlı yayın kontrolü tamamlandı",
     });
   })
-  .catch((err) => {
+  .catch(async (err) => {
     const finishedAt = new Date();
     const errMsg = (err && (err.message ?? String(err))) || "bilinmeyen hata";
     console.error("× check-live başarısız:", errMsg);
-    appendLog({
+    await appendLog({
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
       kind: "live-check",

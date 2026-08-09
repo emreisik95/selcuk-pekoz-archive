@@ -14,7 +14,7 @@ export async function GET() {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   }
-  return NextResponse.json(getAdminConfig());
+  return NextResponse.json(await getAdminConfig());
 }
 
 export async function PATCH(req: Request) {
@@ -47,7 +47,7 @@ export async function PATCH(req: Request) {
   // Banner
   if (b.banner !== undefined) {
     if (b.banner === null) {
-      patchAdminConfig({ banner: null });
+      await patchAdminConfig({ banner: null });
     } else {
       const msg = b.banner.message?.trim();
       const tone =
@@ -60,21 +60,21 @@ export async function PATCH(req: Request) {
           { status: 400 },
         );
       }
-      patchAdminConfig({
+      await patchAdminConfig({
         banner: { message: msg, tone, updatedAt: new Date().toISOString() },
       });
     }
   }
 
   if (b.pinnedVideoId !== undefined) {
-    patchAdminConfig({ pinnedVideoId: b.pinnedVideoId || null });
+    await patchAdminConfig({ pinnedVideoId: b.pinnedVideoId || null });
   }
 
-  if (b.hideVideoId) hideVideo(b.hideVideoId);
-  if (b.unhideVideoId) unhideVideo(b.unhideVideoId);
+  if (b.hideVideoId) await hideVideo(b.hideVideoId);
+  if (b.unhideVideoId) await unhideVideo(b.unhideVideoId);
 
   if (b.override) {
-    setOverride(b.override.videoId, {
+    await setOverride(b.override.videoId, {
       title: b.override.title,
       description: b.override.description,
       thumbnailUrl: b.override.thumbnailUrl,
@@ -82,7 +82,7 @@ export async function PATCH(req: Request) {
   }
 
   if (b.rotateWebhook) {
-    generateWebhookToken();
+    await generateWebhookToken();
   }
 
   if (b.socialLinks !== undefined) {
@@ -117,14 +117,14 @@ export async function PATCH(req: Request) {
         url: l.url.trim(),
         label: l.label?.trim() || undefined,
       }));
-    patchAdminConfig({ socialLinks: cleaned });
+    await patchAdminConfig({ socialLinks: cleaned });
   }
 
   if (b.about !== undefined) {
     if (b.about === null) {
-      patchAdminConfig({ about: null });
+      await patchAdminConfig({ about: null });
     } else if (b.about.body?.trim()) {
-      patchAdminConfig({
+      await patchAdminConfig({
         about: {
           title: b.about.title?.trim() || "Hakkında",
           body: b.about.body.trim(),
@@ -135,14 +135,14 @@ export async function PATCH(req: Request) {
 
   if (b.twitterTimeline !== undefined) {
     if (b.twitterTimeline === null) {
-      patchAdminConfig({ twitterTimeline: null });
+      await patchAdminConfig({ twitterTimeline: null });
     } else {
       const handle = b.twitterTimeline.handle
         ?.trim()
         .replace(/^@/, "")
         .replace(/[^a-zA-Z0-9_]/g, "");
       if (handle) {
-        patchAdminConfig({
+        await patchAdminConfig({
           twitterTimeline: {
             handle,
             enabled: !!b.twitterTimeline.enabled,
@@ -152,5 +152,5 @@ export async function PATCH(req: Request) {
     }
   }
 
-  return NextResponse.json(getAdminConfig());
+  return NextResponse.json(await getAdminConfig());
 }

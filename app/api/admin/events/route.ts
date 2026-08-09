@@ -17,7 +17,7 @@ async function requireAdmin() {
 export async function GET() {
   const denied = await requireAdmin();
   if (denied) return denied;
-  return NextResponse.json({ events: listManualEvents() });
+  return NextResponse.json({ events: await listManualEvents() });
 }
 
 export async function POST(req: Request) {
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   if (Number.isNaN(new Date(b.scheduledAt).getTime())) {
     return NextResponse.json({ error: "Geçersiz tarih" }, { status: 400 });
   }
-  const event = addManualEvent({
+  const event = await addManualEvent({
     title: b.title.trim(),
     scheduledAt: b.scheduledAt,
     description: b.description?.trim() || undefined,
@@ -62,7 +62,7 @@ export async function DELETE(req: Request) {
   if (!id) {
     return NextResponse.json({ error: "id gerekli" }, { status: 400 });
   }
-  const ok = deleteManualEvent(id);
+  const ok = await deleteManualEvent(id);
   if (!ok) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
   return NextResponse.json({ ok: true });
 }
@@ -124,7 +124,7 @@ export async function PATCH(req: Request) {
     patch.matchedAt = new Date().toISOString();
   }
 
-  const event = updateManualEvent(id, patch);
+  const event = await updateManualEvent(id, patch);
   if (!event) return NextResponse.json({ error: "Bulunamadı" }, { status: 404 });
   return NextResponse.json({ event });
 }

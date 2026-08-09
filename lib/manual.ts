@@ -1,62 +1,85 @@
 // Manual calendar events added by the admin. Stored in data/manual.json.
 // Auto-merges with YouTube data when sync finds a matching live broadcast.
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join, dirname } from "node:path";
 import type { ManualEvent } from "./types";
-
-const PATH = join(process.cwd(), "data", "manual.json");
+import {
+  getPersistentJsonStore,
+  JsonDocument,
+  type JsonStore,
+} from "./persistent-json";
 
 type ManualFile = { events: ManualEvent[] };
 
-function readFile(): ManualFile {
-  if (!existsSync(PATH)) return { events: [] };
-  try {
-    return JSON.parse(readFileSync(PATH, "utf8")) as ManualFile;
-  } catch {
-    return { events: [] };
-  }
-}
+type ManualInput = Omit<ManualEvent, "id" | "createdAt">;
 
-function writeFileAtomic(data: ManualFile) {
-  mkdirSync(dirname(PATH), { recursive: true });
-  writeFileSync(PATH, JSON.stringify(data, null, 2));
-}
-
-export function listManualEvents(): ManualEvent[] {
-  return readFile().events;
-}
-
-export function addManualEvent(input: Omit<ManualEvent, "id" | "createdAt">): ManualEvent {
-  const data = readFile();
-  const now = new Date().toISOString();
-  const event: ManualEvent = {
-    id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    createdAt: now,
+export function createManualEventRepository(store: JsonStore) {
+  const document = new JsonDocument<ManualFile>(store, "manual-events", { events: [] });
+  const makeEvent = (input: ManualInput, index = 0): ManualEvent => ({
+    id: `m-${Date.now() + index}-${crypto.randomUUID().slice(0, 8)}`,
+    createdAt: new Date().toISOString(),
     ...input,
+  });
+
+  return {
+    async list() {
+      return (await document.read()).events;
+    },
+    async add(input: ManualInput) {
+      const event = makeEvent(input);
+      await document.update((data) => ({ events: [...data.events, event] }));
+      return event;
+    },
+    async addMany(inputs: ManualInput[]) {
+      const events = inputs.map(makeEvent);
+      await document.update((data) => ({ events: [...data.events, ...events] }));
+      return events;
+    },
+    async delete(id: string) {
+      let deleted = false;
+      await document.update((data) => {
+        const events = data.events.filter((event) => event.id !== id);
+        deleted = events.length !== data.events.length;
+        return deleted ? { events } : data;
+      });
+      return deleted;
+    },
+    async update(id: string, patch: Partial<ManualEvent>) {
+      let updated: ManualEvent | null = null;
+      await document.update((data) => ({
+        events: data.events.map((event) => {
+          if (event.id !== id) return event;
+          updated = { ...event, ...patch };
+          return updated;
+        }),
+      }));
+      return updated;
+    },
   };
-  data.events.push(event);
-  writeFileAtomic(data);
-  return event;
 }
 
-export function deleteManualEvent(id: string): boolean {
-  const data = readFile();
-  const idx = data.events.findIndex((e) => e.id === id);
-  if (idx < 0) return false;
-  data.events.splice(idx, 1);
-  writeFileAtomic(data);
-  return true;
+async function repository() {
+  return createManualEventRepository(await getPersistentJsonStore());
 }
 
-export function updateManualEvent(
+export async function listManualEvents(): Promise<ManualEvent[]> {
+  return (await repository()).list();
+}
+
+export async function addManualEvent(input: ManualInput): Promise<ManualEvent> {
+  return (await repository()).add(input);
+}
+
+export async function addManualEvents(inputs: ManualInput[]): Promise<ManualEvent[]> {
+  return (await repository()).addMany(inputs);
+}
+
+export async function deleteManualEvent(id: string): Promise<boolean> {
+  return (await repository()).delete(id);
+}
+
+export async function updateManualEvent(
   id: string,
   patch: Partial<ManualEvent>,
-): ManualEvent | null {
-  const data = readFile();
-  const e = data.events.find((x) => x.id === id);
-  if (!e) return null;
-  Object.assign(e, patch);
-  writeFileAtomic(data);
-  return e;
+): Promise<ManualEvent | null> {
+  return (await repository()).update(id, patch);
 }

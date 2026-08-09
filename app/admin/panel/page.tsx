@@ -19,17 +19,20 @@ export const metadata = {
 
 export default async function AdminPanelPage() {
   if (!(await isAdmin())) redirect("/admin");
-  const events = listManualEvents();
+  const [events, allLog, config, visibleStreams] = await Promise.all([
+    listManualEvents(),
+    readLog(),
+    getAdminConfig(),
+    getAllStreams(),
+  ]);
   events.sort(
     (a, b) =>
       new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
-  const allLog = readLog();
   const syncLog = allLog.slice(0, 20);
-  const config = getAdminConfig();
   const allStreams = getAllStreamsRaw();
   const overview = buildAdminOverview({
-    streams: getAllStreams(),
+    streams: visibleStreams,
     shorts: getShorts(),
     log: allLog,
     config,
@@ -79,6 +82,7 @@ export default async function AdminPanelPage() {
           initialConfig={config}
           initialOverview={overview}
           streamCatalog={streamCatalog}
+          syncAvailable={process.env.DEPLOY_TARGET !== "cloudflare"}
         />
       </main>
       <Footer />

@@ -46,3 +46,14 @@ test("authenticated admin page builds only the safe overview model", () => {
   assert.match(page, /getShorts/);
   assert.match(page, /initialOverview=/);
 });
+
+test("Cloudflare admin explains that repository sync runs outside the Worker", () => {
+  const page = read("app/admin/panel/page.tsx");
+  const panel = read("app/admin/panel/AdminPanel.tsx");
+  const route = read("app/api/admin/sync/route.ts");
+
+  assert.match(page, /syncAvailable=\{process\.env\.DEPLOY_TARGET !== "cloudflare"\}/);
+  assert.match(panel, /Worker paketine deploy sırasında alınır/);
+  assert.match(route, /process\.env\.DEPLOY_TARGET === "cloudflare"/);
+  assert.match(route, /Worker içinde manuel senkron çalıştırılamaz/);
+});

@@ -12,7 +12,7 @@ export default async function ArchivePage({
   searchParams: Promise<{ etiket?: string }>;
 }) {
   const { etiket } = await searchParams;
-  const past = getPastStreams();
+  const past = await getPastStreams();
   const now = getNow();
   const totalHours = Math.round(
     past.reduce((a, s) => a + (s.durationSec ?? 0), 0) / 3600,

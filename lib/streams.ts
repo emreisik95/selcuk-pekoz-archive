@@ -1,21 +1,18 @@
 // Single source of truth for stream data on the server.
-// Reads data/streams.json (written by `npm run sync`); falls back to mock
-// data when the file is absent so the app stays usable before first sync.
+// Reads data/streams.json (written by `npm run sync`). On runtimes without a
+// writable Node filesystem, the same tracked data is bundled into the Worker.
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import type { Stream } from "./types";
-import {
-  allStreams as mockAll,
-  liveStreams as mockLive,
-  pastStreams as mockPast,
-  upcomingStreams as mockUpcoming,
-  NOW as MOCK_NOW,
-} from "./mock-data";
 import { getAdminConfig } from "./admin-config";
+import {
+  getBundledStreamsFile,
+  type BundledStreamsFile,
+} from "./bundled-channel-data";
 
-function applyAdminConfig(streams: Stream[]): Stream[] {
-  const cfg = getAdminConfig();
+async function applyAdminConfig(streams: Stream[]): Promise<Stream[]> {
+  const cfg = await getAdminConfig();
   const hidden = new Set(cfg.hiddenVideoIds);
   return streams
     .filter((s) => !hidden.has(s.id))
@@ -31,13 +28,7 @@ function applyAdminConfig(streams: Stream[]): Stream[] {
     });
 }
 
-type StreamFile = {
-  syncedAt: string;
-  channelId: string;
-  channelTitle: string;
-  handle: string;
-  streams: Stream[];
-};
+type StreamFile = BundledStreamsFile;
 
 const STREAMS_PATH = join(process.cwd(), "data", "streams.json");
 let cache: { mtimeMs: number; data: StreamFile } | null = null;
@@ -59,29 +50,39 @@ function cleanTitle(t: string): string {
   return out.trim();
 }
 
-function loadOnce(): StreamFile | null {
-  if (!existsSync(STREAMS_PATH)) return null;
+function cleanStreamFile(data: StreamFile): StreamFile {
+  for (const stream of data.streams) {
+    stream.title = cleanTitle(stream.title);
+  }
+  return data;
+}
+
+function loadBundled(): StreamFile {
+  return cleanStreamFile(getBundledStreamsFile());
+}
+
+function loadOnce(): StreamFile {
+  if (!existsSync(STREAMS_PATH)) return loadBundled();
   let mtimeMs: number;
   try {
     mtimeMs = statSync(STREAMS_PATH).mtimeMs;
   } catch {
-    return null;
+    return loadBundled();
   }
   if (cache && cache.mtimeMs === mtimeMs) return cache.data;
   try {
-    const data = JSON.parse(readFileSync(STREAMS_PATH, "utf8")) as StreamFile;
-    for (const s of data.streams) {
-      s.title = cleanTitle(s.title);
-    }
+    const data = cleanStreamFile(
+      JSON.parse(readFileSync(STREAMS_PATH, "utf8")) as StreamFile,
+    );
     cache = { mtimeMs, data };
     return data;
   } catch {
-    return null;
+    return loadBundled();
   }
 }
 
 function isMock(): boolean {
-  return loadOnce() === null;
+  return false;
 }
 
 export function isUsingMockData(): boolean {
@@ -89,63 +90,56 @@ export function isUsingMockData(): boolean {
 }
 
 export function getNow(): Date {
-  // Mock data is pinned to a fixed instant so the demo countdown stays sensible.
-  return isMock() ? MOCK_NOW : new Date();
+  return new Date();
 }
 
 export function getChannelMeta(): { title: string; handle: string } | null {
   const f = loadOnce();
-  if (!f) return null;
   return { title: f.channelTitle, handle: f.handle };
 }
 
-export function getAllStreams(): Stream[] {
+export async function getAllStreams(): Promise<Stream[]> {
   const f = loadOnce();
-  return applyAdminConfig(f ? f.streams : mockAll);
+  return applyAdminConfig(f.streams);
 }
 
 // Like getAllStreams but skips the hidden filter — used by the admin
 // panel so the operator can still un-hide a video.
 export function getAllStreamsRaw(): Stream[] {
-  const f = loadOnce();
-  return f ? f.streams : mockAll;
+  return loadOnce().streams;
 }
 
-export function getUpcomingStreams(): Stream[] {
+export async function getUpcomingStreams(): Promise<Stream[]> {
   const f = loadOnce();
-  const list = f
-    ? f.streams.filter((s) => s.kind === "upcoming")
-    : mockUpcoming;
-  return applyAdminConfig(list).sort(
+  const list = f.streams.filter((s) => s.kind === "upcoming");
+  return (await applyAdminConfig(list)).sort(
     (a, b) =>
       new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
   );
 }
 
-export function getLiveStreams(): Stream[] {
+export async function getLiveStreams(): Promise<Stream[]> {
   const f = loadOnce();
-  const list = f ? f.streams.filter((s) => s.kind === "live") : mockLive;
+  const list = f.streams.filter((s) => s.kind === "live");
   return applyAdminConfig(list);
 }
 
-export function getPastStreams(): Stream[] {
+export async function getPastStreams(): Promise<Stream[]> {
   const f = loadOnce();
-  const list = f
-    ? f.streams.filter((s) => s.kind === "completed")
-    : mockPast;
-  return applyAdminConfig(list).sort(
+  const list = f.streams.filter((s) => s.kind === "completed");
+  return (await applyAdminConfig(list)).sort(
     (a, b) =>
       new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
   );
 }
 
-export function getNextStream(): Stream | null {
-  const live = getLiveStreams()[0];
+export async function getNextStream(): Promise<Stream | null> {
+  const live = (await getLiveStreams())[0];
   if (live) return live;
-  const upcoming = getUpcomingStreams()[0];
+  const upcoming = (await getUpcomingStreams())[0];
   return upcoming ?? null;
 }
 
-export function getStreamById(id: string): Stream | undefined {
-  return getAllStreams().find((s) => s.id === id);
+export async function getStreamById(id: string): Promise<Stream | undefined> {
+  return (await getAllStreams()).find((s) => s.id === id);
 }

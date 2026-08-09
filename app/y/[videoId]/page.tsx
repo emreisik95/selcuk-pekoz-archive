@@ -12,12 +12,12 @@ import { streamTags } from "@/lib/tags";
 import type { Metadata } from "next";
 import type { Stream } from "@/lib/types";
 
-function lookupStream(videoId: string): Stream | undefined {
-  const real = getStreamById(videoId);
+async function lookupStream(videoId: string): Promise<Stream | undefined> {
+  const real = await getStreamById(videoId);
   if (real) return real;
   if (videoId.startsWith("manual:")) {
     const id = videoId.slice("manual:".length);
-    const m = listManualEvents().find((e) => e.id === id);
+    const m = (await listManualEvents()).find((e) => e.id === id);
     if (m) {
       return {
         id: `manual:${m.id}`,
@@ -45,7 +45,7 @@ export async function generateMetadata({
   params: Promise<{ videoId: string }>;
 }): Promise<Metadata> {
   const { videoId } = await params;
-  const stream = lookupStream(videoId);
+  const stream = await lookupStream(videoId);
   if (!stream) return { title: "Bulunamadı" };
   const desc = (stream.description ?? "").trim().slice(0, 160) || undefined;
   const img = stream.thumbnailUrl;
@@ -73,7 +73,7 @@ export default async function DetailPage({
   params: Promise<{ videoId: string }>;
 }) {
   const { videoId } = await params;
-  const stream = lookupStream(videoId);
+  const stream = await lookupStream(videoId);
   if (!stream) notFound();
 
   const description = (stream.description?.trim() || FALLBACK_DESCRIPTION);

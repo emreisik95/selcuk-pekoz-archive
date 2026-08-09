@@ -4,7 +4,7 @@ import { getPastStreams } from "@/lib/streams";
 export const revalidate = 0;
 
 export async function GET(req: Request) {
-  const past = getPastStreams();
+  const past = await getPastStreams();
   if (past.length === 0) {
     return NextResponse.json({ error: "yayın yok" }, { status: 404 });
   }

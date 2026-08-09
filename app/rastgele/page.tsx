@@ -8,8 +8,8 @@ export const metadata = {
   robots: { index: false, follow: true },
 };
 
-export default function RastgelePage() {
-  const past = getPastStreams();
+export default async function RastgelePage() {
+  const past = await getPastStreams();
   if (past.length === 0) redirect("/arsiv");
   const pick = past[Math.floor(Math.random() * past.length)];
   redirect(`/y/${pick.id}`);

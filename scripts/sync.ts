@@ -145,14 +145,14 @@ async function main() {
   );
 
   // ── Manual events auto-link ───────────────────────────────────────────
-  const manuals = listManualEvents().filter((m) => !m.youtubeId);
+  const manuals = (await listManualEvents()).filter((m) => !m.youtubeId);
   if (manuals.length > 0) {
     console.log(`\n→ Manuel yayınlar eşleştiriliyor (${manuals.length} aday)…`);
     let matched = 0;
     for (const m of manuals) {
       const match = findMatchingStream(m.title, m.scheduledAt, streams);
       if (match) {
-        updateManualEvent(m.id, {
+        await updateManualEvent(m.id, {
           youtubeId: match.id,
           matchedAt: new Date().toISOString(),
         });
@@ -166,9 +166,9 @@ async function main() {
 
 const startedAt = new Date();
 main()
-  .then(() => {
+  .then(async () => {
     const finishedAt = new Date();
-    appendLog({
+    await appendLog({
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
       kind: process.env.SYNC_TRIGGER === "manual" ? "manual-trigger" : "full",
@@ -177,11 +177,11 @@ main()
       message: "Sync tamamlandı",
     });
   })
-  .catch((err) => {
+  .catch(async (err) => {
     const finishedAt = new Date();
     const errMsg = (err && (err.message ?? String(err))) || "bilinmeyen hata";
     console.error("× Sync başarısız:", errMsg);
-    appendLog({
+    await appendLog({
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
       kind: process.env.SYNC_TRIGGER === "manual" ? "manual-trigger" : "full",

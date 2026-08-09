@@ -33,12 +33,14 @@ export function AdminPanel({
   initialConfig,
   initialOverview,
   streamCatalog,
+  syncAvailable,
 }: {
   initialEvents: EventWithLabel[];
   initialLog: SyncLogEntry[];
   initialConfig: AdminConfig;
   initialOverview: AdminOverviewModel;
   streamCatalog: StreamLite[];
+  syncAvailable: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -145,7 +147,9 @@ export function AdminPanel({
               onSaved={bumpPreview}
             />
           )}
-          {tab === "system" && <SystemTab initialLog={initialLog} />}
+          {tab === "system" && (
+            <SystemTab initialLog={initialLog} syncAvailable={syncAvailable} />
+          )}
         </div>
         {showPreview && (
           <div className="hidden xl:block">
@@ -1880,7 +1884,13 @@ function SectionHeader({ title }: { title: string }) {
 
 // ── System tab ─────────────────────────────────────────────────────────────
 
-function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
+function SystemTab({
+  initialLog,
+  syncAvailable,
+}: {
+  initialLog: SyncLogEntry[];
+  syncAvailable: boolean;
+}) {
   const [log, setLog] = useState<SyncLogEntry[]>(initialLog);
   const [busy, setBusy] = useState<"full" | "live" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -1932,7 +1942,7 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
           <button
             type="button"
             onClick={() => trigger("full")}
-            disabled={busy !== null}
+            disabled={busy !== null || !syncAvailable}
             className="bg-ink text-bg text-[13px] font-medium px-4 py-2 rounded-[2px] disabled:opacity-50"
           >
             {busy === "full" ? "Çalışıyor…" : "Şimdi full sync et"}
@@ -1940,7 +1950,7 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
           <button
             type="button"
             onClick={() => trigger("live")}
-            disabled={busy !== null}
+            disabled={busy !== null || !syncAvailable}
             className="border border-hair text-[13px] font-medium px-4 py-2 rounded-[2px] hover:border-text disabled:opacity-50"
           >
             {busy === "live" ? "Çalışıyor…" : "Canlı yayını şimdi kontrol et"}
@@ -1955,7 +1965,9 @@ function SystemTab({ initialLog }: { initialLog: SyncLogEntry[] }) {
         </div>
         {msg && <p className="text-[12px] text-muted mb-2">{msg}</p>}
         <p className="text-[12px] text-faint">
-          Otomatik: full sync saatte bir · canlı kontrol 15 dakikada bir
+          {syncAvailable
+            ? "Otomatik: full sync saatte bir · canlı kontrol 15 dakikada bir"
+            : "Bu arşiv Worker paketine deploy sırasında alınır. Yeni veri için önce repository sync, ardından deploy çalıştırılır."}
         </p>
       </section>
 

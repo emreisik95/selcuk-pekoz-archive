@@ -16,8 +16,8 @@ Veriler düzenli olarak YouTube Data API aracılığıyla çekilir. Yaklaşan ya
 
 Resmi sosyal medya bağlantıları aşağıda. Selçuk'a ulaşmak veya kanalını desteklemek istersen YouTube veya Discord en hızlı yol.`;
 
-export default function HakkindaPage() {
-  const cfg = getAdminConfig();
+export default async function HakkindaPage() {
+  const cfg = await getAdminConfig();
   const meta = getChannelMeta();
   const title = cfg.about?.title ?? "Hakkında";
   const body = cfg.about?.body ?? DEFAULT_BODY;

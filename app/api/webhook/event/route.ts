@@ -8,7 +8,7 @@ import { getAdminConfig } from "@/lib/admin-config";
 import { addManualEvent } from "@/lib/manual";
 
 export async function POST(req: Request) {
-  const cfg = getAdminConfig();
+  const cfg = await getAdminConfig();
   if (!cfg.webhookToken) {
     return NextResponse.json(
       { error: "Webhook devre dışı (admin panelden token oluştur)" },
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
   if (Number.isNaN(new Date(b.scheduledAt).getTime())) {
     return NextResponse.json({ error: "Geçersiz tarih" }, { status: 400 });
   }
-  const event = addManualEvent({
+  const event = await addManualEvent({
     title: b.title.trim(),
     scheduledAt: b.scheduledAt,
     description: b.description?.trim() || undefined,

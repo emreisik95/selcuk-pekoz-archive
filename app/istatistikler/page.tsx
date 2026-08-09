@@ -56,9 +56,8 @@ const MONTH_SHORT = [
   "Ara",
 ];
 
-export default function StatsPage() {
-  const all = getAllStreams();
-  const past = getPastStreams();
+export default async function StatsPage() {
+  const [all, past] = await Promise.all([getAllStreams(), getPastStreams()]);
   const now = getNow();
 
   const t = totals(all);

@@ -352,9 +352,11 @@ export default async function CalendarPage({
   const today = todayInIstanbul(now);
   const visible = parseMonthParam(ayRaw, today);
   const view: View = viewRaw === "ajanda" ? "ajanda" : "ay";
-  const realStreams = getAllStreams();
+  const [realStreams, manuals] = await Promise.all([
+    getAllStreams(),
+    listManualEvents(),
+  ]);
   const realIds = new Set(realStreams.map((s) => s.id));
-  const manuals = listManualEvents();
   // Skip manuals that have already been merged with a YouTube video.
   const unmatchedManualStreams = manuals
     .filter((m) => !m.youtubeId || !realIds.has(m.youtubeId))

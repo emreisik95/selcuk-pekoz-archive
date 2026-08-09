@@ -32,10 +32,10 @@ const CURATED_IDS = [
   "f7bRe-qC_RM",
 ] as const;
 
-export default function DgkoPage() {
+export default async function DgkoPage() {
   const shorts = getShorts();
   const yearStats = getBirthdayYearStats(
-    getAllStreams(),
+    await getAllStreams(),
     shorts,
     new Date("2025-07-23T00:00:00+03:00"),
     new Date("2026-07-24T00:00:00+03:00"),
