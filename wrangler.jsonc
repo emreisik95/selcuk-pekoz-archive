@@ -14,9 +14,15 @@
       "id": "bd0dd9aafe884b30891250dcc9d6136c"
     }
   ],
+  "routes": [
+    {
+      "pattern": "sp.emre.zip",
+      "custom_domain": true
+    }
+  ],
   "vars": {
     "DEPLOY_TARGET": "cloudflare",
-    "NEXT_PUBLIC_SITE_URL": "https://selcuk-pekoz-archive.hello-e43.workers.dev"
+    "NEXT_PUBLIC_SITE_URL": "https://sp.emre.zip"
   },
   "observability": {
     "enabled": true

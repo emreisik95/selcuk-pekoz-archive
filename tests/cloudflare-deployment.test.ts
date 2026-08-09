@@ -27,8 +27,10 @@ test("Cloudflare production deployment is reproducible from the repository", () 
   assert.match(wrangler, /"binding": "ADMIN_DATA"/);
   assert.match(
     wrangler,
-    /"NEXT_PUBLIC_SITE_URL": "https:\/\/selcuk-pekoz-archive\.hello-e43\.workers\.dev"/,
+    /"NEXT_PUBLIC_SITE_URL": "https:\/\/sp\.emre\.zip"/,
   );
+  assert.match(wrangler, /"pattern": "sp\.emre\.zip"/);
+  assert.match(wrangler, /"custom_domain": true/);
   assert.match(read("open-next.config.ts"), /defineCloudflareConfig/);
   assert.match(read("public/_headers"), /Cache-Control: public,max-age=31536000,immutable/);
   assert.match(read(".gitignore"), /\.open-next/);
@@ -36,7 +38,7 @@ test("Cloudflare production deployment is reproducible from the repository", () 
   const siteUrl = read("lib/site-url.ts");
   assert.match(
     siteUrl,
-    /https:\/\/selcuk-pekoz-archive\.hello-e43\.workers\.dev/,
+    /https:\/\/sp\.emre\.zip/,
   );
   assert.doesNotMatch(siteUrl, /localhost/);
   for (const path of [
