@@ -13,9 +13,11 @@ import type {
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PreviewPane } from "@/components/PreviewPane";
 import { BannerView } from "@/components/BannerView";
+import { AdminOverview } from "@/components/admin/AdminOverview";
+import type { AdminOverview as AdminOverviewModel } from "@/lib/admin-overview";
 
 type EventWithLabel = ManualEvent & { dateLabel: string };
-type Tab = "events" | "content" | "system";
+type Tab = "overview" | "events" | "content" | "system";
 
 type StreamLite = {
   id: string;
@@ -29,25 +31,29 @@ export function AdminPanel({
   initialEvents,
   initialLog,
   initialConfig,
+  initialOverview,
   streamCatalog,
 }: {
   initialEvents: EventWithLabel[];
   initialLog: SyncLogEntry[];
   initialConfig: AdminConfig;
+  initialOverview: AdminOverviewModel;
   streamCatalog: StreamLite[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("t");
   const tab: Tab =
-    tabParam === "content" || tabParam === "system" ? tabParam : "events";
+    tabParam === "events" || tabParam === "content" || tabParam === "system"
+      ? tabParam
+      : "overview";
   // Bump on every save → preview iframe refreshes
   const [previewKey, setPreviewKey] = useState(0);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   function setTab(next: Tab) {
     const params = new URLSearchParams(searchParams.toString());
-    if (next === "events") params.delete("t");
+    if (next === "overview") params.delete("t");
     else params.set("t", next);
     const qs = params.toString();
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
@@ -77,8 +83,10 @@ export function AdminPanel({
           <li>Yönetici paneli</li>
           <li aria-hidden>/</li>
           <li className="text-text">
-            {tab === "events"
-              ? "Manuel yayınlar"
+            {tab === "overview"
+              ? "Genel bakış"
+              : tab === "events"
+                ? "Etkinlikler"
               : tab === "content"
                 ? "İçerik"
                 : "Sistem"}
@@ -88,7 +96,8 @@ export function AdminPanel({
       <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">
         <div role="tablist" aria-label="Bölüm" className="flex">
           {([
-            ["events", "Manuel yayınlar"],
+            ["overview", "Genel bakış"],
+            ["events", "Etkinlikler"],
             ["content", "İçerik"],
             ["system", "Sistem"],
           ] as const).map(([k, label], i) => (
@@ -127,6 +136,7 @@ export function AdminPanel({
         }
       >
         <div className="min-w-0">
+          {tab === "overview" && <AdminOverview overview={initialOverview} />}
           {tab === "events" && <EventsTab initialEvents={initialEvents} />}
           {tab === "content" && (
             <ContentTab
