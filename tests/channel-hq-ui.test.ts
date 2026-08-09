@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(path, "utf8");
@@ -24,4 +24,38 @@ test("global navigation keeps the complete channel within one step", () => {
   }
   assert.match(nav, /Favorilerim/);
   assert.match(nav, /ThemeToggle/);
+});
+
+test("the channel hero communicates every broadcast state and its actions", () => {
+  const path = "components/channel/ChannelHero.tsx";
+  assert.equal(existsSync(path), true, "ChannelHero should exist");
+  const hero = read(path);
+
+  for (const label of [
+    "ŞİMDİ CANLI",
+    "SIRADAKİ YAYIN",
+    "SON SİNYAL",
+    "YAYIN BEKLENİYOR",
+  ]) {
+    assert.match(hero, new RegExp(label));
+  }
+  assert.match(hero, /youtube\.com\/watch/);
+  assert.match(hero, /Countdown/);
+  assert.match(hero, /CalendarButton/);
+  assert.match(hero, /\/y\/\$\{active\.id\}/);
+});
+
+test("channel metrics label the archive in human terms", () => {
+  const path = "components/channel/ChannelMetrics.tsx";
+  assert.equal(existsSync(path), true, "ChannelMetrics should exist");
+  const metrics = read(path);
+
+  for (const label of [
+    "Yayınlık arşiv",
+    "Saatlik kayıt",
+    "Toplam izlenme",
+    "Kısa video",
+  ]) {
+    assert.match(metrics, new RegExp(label));
+  }
 });
