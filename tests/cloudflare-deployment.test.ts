@@ -25,7 +25,27 @@ test("Cloudflare production deployment is reproducible from the repository", () 
   assert.match(wrangler, /"compatibility_date": "2026-08-08"/);
   assert.match(wrangler, /"nodejs_compat"/);
   assert.match(wrangler, /"binding": "ADMIN_DATA"/);
+  assert.match(
+    wrangler,
+    /"NEXT_PUBLIC_SITE_URL": "https:\/\/selcuk-pekoz-archive\.hello-e43\.workers\.dev"/,
+  );
   assert.match(read("open-next.config.ts"), /defineCloudflareConfig/);
   assert.match(read("public/_headers"), /Cache-Control: public,max-age=31536000,immutable/);
   assert.match(read(".gitignore"), /\.open-next/);
+
+  const siteUrl = read("lib/site-url.ts");
+  assert.match(
+    siteUrl,
+    /https:\/\/selcuk-pekoz-archive\.hello-e43\.workers\.dev/,
+  );
+  assert.doesNotMatch(siteUrl, /localhost/);
+  for (const path of [
+    "app/robots.ts",
+    "app/sitemap.ts",
+    "app/feed.ics/route.ts",
+    "lib/pubsub.ts",
+  ]) {
+    assert.match(read(path), /SITE_URL/);
+    assert.doesNotMatch(read(path), /localhost:3007/);
+  }
 });

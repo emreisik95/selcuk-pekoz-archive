@@ -5,6 +5,7 @@ import {
   getChannelMeta,
 } from "@/lib/streams";
 import type { Stream } from "@/lib/types";
+import { SITE_URL } from "@/lib/site-url";
 
 export const revalidate = 60;
 
@@ -52,15 +53,7 @@ function foldLine(line: string): string {
 // domain keeps UIDs stable across syncs and stops Google from re-parsing
 // every event on each refresh.
 function calendarDomain(): string {
-  const env = process.env.NEXT_PUBLIC_SITE_URL;
-  if (env) {
-    try {
-      return new URL(env).hostname;
-    } catch {
-      /* fall through */
-    }
-  }
-  return "selcukpekoz-archive";
+  return new URL(SITE_URL).hostname;
 }
 
 const MAX_DESC_LEN = 800;

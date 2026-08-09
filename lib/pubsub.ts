@@ -5,6 +5,7 @@
 // Lease is up to 5 days; we record the expiry and renew before it lapses.
 
 import { getAdminConfig, patchAdminConfig } from "./admin-config";
+import { SITE_URL } from "./site-url";
 
 const HUB_URL = "https://pubsubhubbub.appspot.com/subscribe";
 const MAX_LEASE_SECONDS = 432000; // 5 days
@@ -14,8 +15,7 @@ function topicFor(channelId: string): string {
 }
 
 function callbackFor(): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3007";
-  return `${base.replace(/\/$/, "")}/api/webhook/youtube`;
+  return `${SITE_URL}/api/webhook/youtube`;
 }
 
 async function hubRequest(
