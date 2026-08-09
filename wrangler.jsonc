@@ -2,6 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "selcuk-pekoz-archive",
   "main": ".open-next/worker.js",
+  "workers_dev": true,
   "compatibility_date": "2026-08-08",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {

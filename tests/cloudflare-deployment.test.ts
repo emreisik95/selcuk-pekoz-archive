@@ -31,6 +31,7 @@ test("Cloudflare production deployment is reproducible from the repository", () 
   );
   assert.match(wrangler, /"pattern": "sp\.emre\.zip"/);
   assert.match(wrangler, /"custom_domain": true/);
+  assert.match(wrangler, /"workers_dev": true/);
   assert.match(read("open-next.config.ts"), /defineCloudflareConfig/);
   assert.match(read("public/_headers"), /Cache-Control: public,max-age=31536000,immutable/);
   assert.match(read(".gitignore"), /\.open-next/);
